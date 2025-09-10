@@ -1,0 +1,33 @@
+from fastapi import FastAPI, Request
+from config.settings import settings
+from services.messenger.telegram import TelegramMessenger
+from services.llm.openai_llm import OpenAILLM
+from services.agent.agent_service import AgentService
+
+app = FastAPI()
+
+messenger = TelegramMessenger(token=settings.TELEGRAM_API_TOKEN)
+llm = OpenAILLM(api_key=settings.OPENAI_API_KEY)
+agent_service = AgentService(llm)
+
+
+@app.post("/telegram/webhook")
+async def telegram_webhook(request: Request):
+    payload = await request.json()
+
+    chat_id = str(payload.get("message", payload.get(
+        "callback_query", {})).get("chat", {}).get("id"))
+
+    incoming_text = messenger.receive_message(payload)
+
+    llm_options = {
+        "model": settings.DEFAULT_MODEL,
+        "temperature": settings.DEFAULT_TEMPERATURE,
+        "max_tokens": settings.MAX_TOKENS
+    }
+
+    reply = await agent_service.handle_user_message(incoming_text, options=llm_options)
+
+    await messenger.send_message(chat_id, reply.json())
+
+    return {"ok": True}
