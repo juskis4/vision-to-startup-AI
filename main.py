@@ -2,12 +2,14 @@ from fastapi import FastAPI, Request
 from config.settings import settings
 from services.messenger.telegram import TelegramMessenger
 from services.llm.openai_llm import OpenAILLM
+from services.database.supabase_db import SupabaseDB
 from services.agent.agent_service import AgentService
 
 app = FastAPI()
 
 messenger = TelegramMessenger(token=settings.TELEGRAM_API_TOKEN)
 llm = OpenAILLM(api_key=settings.OPENAI_API_KEY)
+db = SupabaseDB(url=settings.SUPABASE_URL, key=settings.SUPABASE_KEY)
 agent_service = AgentService(llm)
 
 

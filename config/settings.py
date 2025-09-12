@@ -9,6 +9,9 @@ class Settings(BaseSettings):
 
     TELEGRAM_API_TOKEN: str
 
+    SUPABASE_URL: str
+    SUPABASE_KEY: str
+
     class Config:
         env_file = ".env"
 
