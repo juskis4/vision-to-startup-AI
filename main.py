@@ -20,21 +20,27 @@ async def telegram_webhook(request: Request):
     chat_id = str(payload.get("message", payload.get(
         "callback_query", {})).get("chat", {}).get("id"))
 
-    incoming_text = messenger.receive_message(payload)
+    try:
+        incoming_text = messenger.receive_message(payload)
 
-    llm_options = {
-        "model": settings.DEFAULT_MODEL,
-        "temperature": settings.DEFAULT_TEMPERATURE,
-        "max_tokens": settings.MAX_TOKENS
-    }
+        llm_options = {
+            "model": settings.DEFAULT_MODEL,
+            "temperature": settings.DEFAULT_TEMPERATURE,
+            "max_tokens": settings.MAX_TOKENS
+        }
 
-    reply = await agent_service.handle_user_message(
-        user_input=incoming_text,
-        options=llm_options,
-        user_id=chat_id
-    )
+        reply = await agent_service.handle_user_message(
+            user_input=incoming_text,
+            options=llm_options,
+            user_id=chat_id
+        )
 
-    if reply:
-        await messenger.send_message(chat_id, reply.json())
+        if reply:
+            await messenger.send_message(chat_id, reply.json())
 
-    return {"ok": True}
+        return {"ok": True}
+
+    except Exception as e:
+        print(f"Error processing message: {str(e)}")
+        await messenger.send_message(chat_id, "Sorry, an error occurred.")
+        return {"ok": False}
