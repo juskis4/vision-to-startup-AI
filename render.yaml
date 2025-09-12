@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: vision-to-startup-ai-backend
+    env: docker
+    plan: free
+    branch: main
+    autoDeploy: false
