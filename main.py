@@ -10,7 +10,7 @@ app = FastAPI()
 messenger = TelegramMessenger(token=settings.TELEGRAM_API_TOKEN)
 llm = OpenAILLM(api_key=settings.OPENAI_API_KEY)
 db = SupabaseDB(url=settings.SUPABASE_URL, key=settings.SUPABASE_KEY)
-agent_service = AgentService(llm)
+agent_service = AgentService(llm=llm, db=db)
 
 
 @app.post("/telegram/webhook")
@@ -28,8 +28,13 @@ async def telegram_webhook(request: Request):
         "max_tokens": settings.MAX_TOKENS
     }
 
-    reply = await agent_service.handle_user_message(incoming_text, options=llm_options)
+    reply = await agent_service.handle_user_message(
+        user_input=incoming_text,
+        options=llm_options,
+        user_id=chat_id
+    )
 
-    await messenger.send_message(chat_id, reply.json())
+    if reply:
+        await messenger.send_message(chat_id, reply.json())
 
     return {"ok": True}

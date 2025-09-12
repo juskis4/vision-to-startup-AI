@@ -11,7 +11,7 @@ class LLM(ABC):
         system: Optional[str] = None,
         options: Optional[dict[str, Any]] = None,
     ) -> str:
-        raise NotImplementedError
+        raise NotImplementedError("generate method must be implemented")
 
     @abstractmethod
     async def generate_parse(
@@ -22,4 +22,4 @@ class LLM(ABC):
         options: Optional[dict[str, Any]] = None,
         schema: Any = None
     ) -> str:
-        raise NotImplementedError
+        raise NotImplementedError("generate_parse method must be implemented")
