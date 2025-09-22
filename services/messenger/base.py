@@ -10,3 +10,7 @@ class Messenger(ABC):
     @abstractmethod
     def receive_message(self, payload: dict[str, Any]) -> str:
         raise NotImplementedError("receive_message method must be implemented")
+
+    @abstractmethod
+    async def download_voice(self, payload: dict[str, Any]) -> bytes:
+        raise NotImplementedError("download_voice method must be implemented")

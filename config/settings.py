@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     DEFAULT_MODEL: str
     MAX_TOKENS: int
     DEFAULT_TEMPERATURE: float
+    TRANSCRIBE_MODEL: str
 
     TELEGRAM_API_TOKEN: str
 
