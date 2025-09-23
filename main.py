@@ -54,7 +54,7 @@ async def telegram_webhook(request: Request):
         )
 
         if reply:
-            await messenger.send_message(chat_id, reply.json())
+            await messenger.send_message(chat_id, reply.model_dump_json())
 
         return {"ok": True}
 
