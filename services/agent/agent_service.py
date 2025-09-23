@@ -14,11 +14,6 @@ class AgentService:
                                   user_id: str,
                                   options: Optional[dict] = None) -> ResponseSchema:
 
-        idea = await self.extract_info(
-            user_input=user_input,
-            options=options
-        )
-
         idea = await self.extract_info(user_input=user_input, options=options)
         if idea.confidence < 0.7:
             print(f"Low confidence score: {idea.confidence}")
@@ -37,9 +32,9 @@ class AgentService:
             print(f"Low confidence score: {reddit.confidence}")
             return None
 
-        print("eventInfo:", idea)
-        print("ICP:", icp)
-        print("Reddit:", reddit)
+        print("Idea response:", idea)
+        print("ICP response:", icp)
+        print("Reddit response:", reddit)
 
         # try:
         #     self.db.insert_plan(
