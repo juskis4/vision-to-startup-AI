@@ -43,7 +43,7 @@ class TelegramMessenger(Messenger):
             try:
                 file = await self.bot.get_file(file_id)
                 file_bytes = await file.download_as_bytearray(
-                    timeout=download_timeout
+                    read_timeout=download_timeout
                 )
 
                 return bytes(file_bytes)
