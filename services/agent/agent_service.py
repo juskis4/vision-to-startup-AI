@@ -19,27 +19,27 @@ class AgentService:
             options=options
         )
 
+        idea = await self.extract_info(user_input=user_input, options=options)
         if idea.confidence < 0.7:
             print(f"Low confidence score: {idea.confidence}")
             return None
-        else:
-            icp = await self.extract_icp(
-                context=idea.model_dump_json(),
-                options=options)
-            if icp.confidence < 0.7:
-                print(f"Low confidence score: {icp.confidence}")
-                return None
-            else:
-                reddit = await self.extract_reddit(
-                    context=f"{idea.model_dump_json()}\n\n{icp.model_dump_json()}",
-                    options=options)
-                if reddit.confidence < 0.7:
-                    print(f"Low confidence score: {reddit.confidence}")
-                    return None
-                else:
-                    print("eventInfo:", idea)
-                    print("ICP:", icp)
-                    print("Reddit:", reddit)
+
+        icp = await self.extract_icp(context=idea.model_dump_json(), options=options)
+        if icp.confidence < 0.7:
+            print(f"Low confidence score: {icp.confidence}")
+            return None
+
+        reddit = await self.extract_reddit(
+            context=f"{idea.model_dump_json()}\n\n{icp.model_dump_json()}",
+            options=options
+        )
+        if reddit.confidence < 0.7:
+            print(f"Low confidence score: {reddit.confidence}")
+            return None
+
+        print("eventInfo:", idea)
+        print("ICP:", icp)
+        print("Reddit:", reddit)
 
         # try:
         #     self.db.insert_plan(
