@@ -30,12 +30,10 @@ class OpenAILLM(LLM):
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
 
-        response = await self.client.chat.completions.create(
+        response = await self.client.responses.create(
             model=options["model"],
-            messages=messages,
-            temperature=options["temperature"],
-            max_tokens=options["max_tokens"],
-            top_p=options.get("top_p", 1.0),
+            input=messages,
+            max_output_tokens=options["max_tokens"],
         )
 
         return response.choices[0].message.content or ""
@@ -58,12 +56,11 @@ class OpenAILLM(LLM):
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": user_input})
 
-        response = await self.client.beta.chat.completions.parse(
+        response = await self.client.responses.parse(
             model=options["model"],
-            max_tokens=options["max_tokens"],
-            temperature=options["temperature"],
-            messages=messages,
-            response_format=schema,
+            max_output_tokens=options["max_tokens"],
+            input=messages,
+            text_format=schema,
         )
 
-        return response.choices[0].message.parsed
+        return response.output_parsed
