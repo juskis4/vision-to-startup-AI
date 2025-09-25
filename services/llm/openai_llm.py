@@ -10,7 +10,7 @@ class OpenAILLM(LLM):
         if not api_key:
             raise ValueError("OpenAI API key not provided")
 
-        self.client = AsyncOpenAI(api_key=api_key)
+        self.client = AsyncOpenAI(api_key=api_key, timeout=360)
 
     async def generate(
         self,
@@ -44,7 +44,8 @@ class OpenAILLM(LLM):
         *,
         system: Optional[str] = None,
         options: Optional[dict[str, Any]] = None,
-        schema: Any = None
+        schema: Any = None,
+        web_search: bool = False
     ) -> str:
 
         messages = []
@@ -56,11 +57,16 @@ class OpenAILLM(LLM):
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": user_input})
 
-        response = await self.client.responses.parse(
-            model=options["model"],
-            max_output_tokens=options["max_tokens"],
-            input=messages,
-            text_format=schema,
-        )
+        request_params = {
+            "model": options["model"],
+            "max_output_tokens": options["max_tokens"],
+            "input": messages,
+            "text_format": schema,
+        }
+
+        if web_search:
+            request_params["tools"] = [{"type": "web_search"}]
+
+        response = await self.client.responses.parse(**request_params)
 
         return response.output_parsed

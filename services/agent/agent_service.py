@@ -93,7 +93,8 @@ class AgentService:
             Input: Business or app idea, with a description, core problem, main functionality and ideal customer profile (ICP).\n"
             """,
             options=options,
-            schema=RedditSchema
+            schema=RedditSchema,
+            web_search=True
         )
 
         print(

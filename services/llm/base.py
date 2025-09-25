@@ -20,6 +20,7 @@ class LLM(ABC):
         *,
         system: Optional[str] = None,
         options: Optional[dict[str, Any]] = None,
-        schema: Any = None
+        schema: Any = None,
+        web_search: bool = False
     ) -> str:
         raise NotImplementedError("generate_parse method must be implemented")
