@@ -12,12 +12,33 @@ class TelegramMessenger(Messenger):
 
     async def send_message(self, chat_id: str, text: str, reply_markup: Optional[Any] = None) -> None:
         print(f"Sending message to chat_id {chat_id}: {text}")
-        await self.bot.send_message(
-            chat_id=chat_id,
-            text=text,
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=reply_markup,
-        )
+
+        is_json = text.strip().startswith('{') and text.strip().endswith('}')
+
+        parse_mode = None if is_json else ParseMode.MARKDOWN
+
+        max_length = 4000
+        if len(text) <= max_length:
+            await self.bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                parse_mode=parse_mode,
+                reply_markup=reply_markup,
+            )
+        else:
+            # Split into chunks
+            chunks = [text[i:i+max_length]
+                      for i in range(0, len(text), max_length)]
+            for i, chunk in enumerate(chunks):
+                chunk_text = f"Part {i+1}/{len(chunks)}:\n{chunk}" if len(
+                    chunks) > 1 else chunk
+                await self.bot.send_message(
+                    chat_id=chat_id,
+                    text=chunk_text,
+                    parse_mode=parse_mode,
+                    reply_markup=reply_markup if i == len(
+                        chunks) - 1 else None,
+                )
 
     def receive_message(self, payload: dict) -> str:
         if "message" in payload:
