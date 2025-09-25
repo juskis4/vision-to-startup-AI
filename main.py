@@ -7,6 +7,7 @@ from services.agent.agent_service import AgentService
 from services.voice.openai_transcriber import OpenAITranscriber
 
 app = FastAPI()
+processing_messages = set()
 
 messenger = TelegramMessenger(token=settings.TELEGRAM_API_TOKEN)
 llm = OpenAILLM(api_key=settings.OPENAI_API_KEY)
@@ -19,6 +20,14 @@ agent_service = AgentService(llm=llm, db=db)
 @app.post("/telegram/webhook")
 async def telegram_webhook(request: Request):
     payload = await request.json()
+
+    message_id = (payload.get("message") or payload.get(
+        "callback_query", {}).get("message", {})).get("message_id")
+
+    if message_id:
+        if message_id in processing_messages:
+            return {"ok": True}
+        processing_messages.add(message_id)
 
     chat_id = str(payload.get("message", payload.get(
         "callback_query", {})).get("chat", {}).get("id"))
@@ -62,3 +71,8 @@ async def telegram_webhook(request: Request):
         print(f"Error processing message: {str(e)}")
         await messenger.send_message(chat_id, "Sorry, an error occurred.")
         return {"ok": False}
+    finally:
+        if message_id and message_id in processing_messages:
+            processing_messages.remove(message_id)
+            print(
+                f"Finished processing message {message_id}, removed from processing set")
