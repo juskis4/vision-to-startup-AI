@@ -32,20 +32,20 @@ class AgentService:
             print(f"Low confidence score: {reddit.confidence}")
             return None
 
-        print("Idea response:", idea)
-        print("ICP response:", icp)
-        print("Reddit response:", reddit)
+        response_schema = ResponseSchema(
+            idea=idea, icp=icp, reddit_analysis=reddit
+        )
 
-        # try:
-        #     self.db.insert_plan(
-        #         user_id=user_id,
-        #         idea=user_input,
-        #         response=eventInfo.model_dump_json()
-        #     )
-        # except Exception as e:
-        #     print(f"Failed to save to database: {str(e)}")
+        try:
+            self.db.insert_plan(
+                user_id=user_id,
+                idea=user_input,
+                response=response_schema.model_dump()
+            )
+        except Exception as e:
+            print(f"Failed to save to database: {str(e)}")
 
-        return ResponseSchema(ideas=idea, icp=icp, reddit_analysis=reddit)
+        return response_schema
 
     async def extract_info(self, user_input: str, options: Optional[dict] = None) -> IdeaSchema:
         print("Starting info extraction analysis")
@@ -89,6 +89,12 @@ class AgentService:
         response = await self.llm.generate_parse(
             user_input=context,
             system=f"""
+            You output ONLY JSON that validates against RedditSchema. No markdown, no prose.
+
+            Rules for fields:
+            - observations[*].quote: <= 180 chars, replace any double quotes (") with single quotes (') OR escape them.
+            - No newlines in strings. No trailing commas. Strict JSON.
+
             Based on the ICP, identify 3 relevant subreddits where they hang out. Find top upvoted posts related to the problem and analyze their content. Use sentiment analysis or pattern detection to determine if people are frustrated, desperate, or actively seeking solutions. Summarize what you find to help validate if this is a painkiller, not a vitamin.\n
             Input: Business or app idea, with a description, core problem, main functionality and ideal customer profile (ICP).\n"
             """,

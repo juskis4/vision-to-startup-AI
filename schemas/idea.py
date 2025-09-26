@@ -72,6 +72,6 @@ class RedditSchema(BaseModel):
 
 
 class ResponseSchema(BaseModel):
-    ideas: IdeaSchema = Field()
+    idea: IdeaSchema = Field()
     icp: IcpSchema = Field()
     reddit_analysis: RedditSchema = Field()
