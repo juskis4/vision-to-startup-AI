@@ -46,3 +46,53 @@ class SupabaseDB(Database):
             ideas.append(idea_entry)
 
         return ideas
+
+    def get_idea_by_id(self, idea_id: str) -> Optional[Dict[str, Any]]:
+        try:
+            result = self.client.table("business_plans").select(
+                "id, user_id, idea, response, created_at, schema_version"
+            ).eq("id", idea_id).execute()
+
+            if not result.data or len(result.data) == 0:
+                return None
+
+        except Exception:
+            return None
+
+        plan = result.data[0]
+        response = plan.get("response", {})
+
+        idea_data = response.get("idea", {}) if isinstance(
+            response, dict) else {}
+        icp_data = response.get("icp", {}) if isinstance(
+            response, dict) else {}
+        reddit_data = response.get(
+            "reddit_analysis", {}) if isinstance(response, dict) else {}
+
+        return {
+            "id": plan["id"],
+            "user_id": plan["user_id"],
+            "original_idea": plan["idea"],
+            "created_at": plan["created_at"],
+            "schema_version": plan.get("schema_version", 1),
+            "idea": {
+                "title": idea_data.get("title", ""),
+                "description": idea_data.get("description", ""),
+                "problem_statement": idea_data.get("problem_statement", ""),
+                "key_features": idea_data.get("key_features", []),
+                "confidence": idea_data.get("confidence", 0.0)
+            },
+            "icp": {
+                "target_demographics": icp_data.get("target_demographics", []),
+                "ideal_customer_profile": icp_data.get("ideal_customer_profile", ""),
+                "pain_points": icp_data.get("pain_points", []),
+                "user_motivations": icp_data.get("user_motivations", []),
+                "confidence": icp_data.get("confidence", 0.0)
+            },
+            "reddit_analysis": {
+                "supportive_feedback": reddit_data.get("supportive_feedback", []),
+                "challenging_feedback": reddit_data.get("challenging_feedback", []),
+                "relevant_subreddits": reddit_data.get("relevant_subreddits", []),
+                "confidence": reddit_data.get("confidence", 0.0)
+            }
+        }

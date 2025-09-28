@@ -11,3 +11,7 @@ class Database(ABC):
     @abstractmethod
     def get_all_ideas(self) -> List[Dict[str, Any]]:
         raise NotImplementedError("get_all_ideas method must be implemented")
+
+    @abstractmethod
+    def get_idea_by_id(self, idea_id: str) -> Optional[Dict[str, Any]]:
+        raise NotImplementedError("get_idea_by_id method must be implemented")

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from config.settings import settings
 from services.messenger.telegram import TelegramMessenger
@@ -109,3 +109,37 @@ async def get_all_ideas():
             "data": [],
             "count": 0
         }
+
+
+@app.get("/ideas/{idea_id}")
+async def get_idea_by_id(idea_id: str):
+    """
+    Retrieve a single idea by its ID with complete details.
+    Args:
+        idea_id: The unique identifier of the idea to retrieve
+    Returns:
+        Complete idea details including original input, processed analysis,
+        ICP data, Reddit analysis.
+    """
+    try:
+        idea = db.get_idea_by_id(idea_id)
+
+        if idea is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Idea with ID '{idea_id}' not found"
+            )
+
+        return {
+            "success": True,
+            "data": idea
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error retrieving idea {idea_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve idea"
+        )
