@@ -4,68 +4,92 @@ from typing import List
 
 class IdeaSchema(BaseModel):
     title: str = Field(
-        description="A short, catchy title for the idea."
+        description="A short, catchy title for the idea.",
+        max_length=100
     )
     description: str = Field(
-        description="1-3 sentence canonical description of the idea."
+        description="1-3 sentence canonical description of the idea.",
+        max_length=500
     )
-    core_problem: str = Field(
-        description="Backwards deconstructed idea to identify the core problem it solves."
+    problem_statement: str = Field(
+        description="Clear statement of the core problem this idea solves.",
+        max_length=300
     )
-    functionality: List[str] = Field(
-        description="Prioritized bullet list of core features / flows"
+    key_features: List[str] = Field(
+        description="List of key features or capabilities of the solution",
+        min_length=3,
+        max_length=7
     )
     confidence: float = Field(
-        description="How confident the model is in the evaluation",
+        description="Confidence score (0.0-1.0) indicating quality and relevance of the idea analysis. Used as a guard to filter low-quality responses.",
         ge=0.0,
         le=1.0
     )
 
 
 class IcpSchema(BaseModel):
-    demographics: str = Field(
-        description="Age, location, occupation."
+    target_demographics: List[str] = Field(
+        description="List of demographic tags describing the target audience (e.g., 'Busy professionals aged 25-45', 'Health-conscious individuals')",
+        min_length=3,
+        max_length=6
     )
-    psychographics: str = Field(
-        description="Values, beliefs, goals."
+    ideal_customer_profile: str = Field(
+        description="Detailed description of the ideal customer including demographics, income, location, and characteristics",
+        max_length=400
     )
-    pain_points: str = Field(
-        description="Customers pain points that relate to the core problem."
+    pain_points: List[str] = Field(
+        description="List of specific pain points the target customers face",
+        min_length=3,
+        max_length=7
     )
-    motivation: List[str] = Field(
-        description="Key motivation for using the product."
+    user_motivations: List[str] = Field(
+        description="List of key motivations that drive users to seek this solution",
+        min_length=3,
+        max_length=7
     )
     confidence: float = Field(
-        description="How confident the model is in the evaluation",
+        description="Confidence score (0.0-1.0) indicating quality and relevance of the ICP analysis. Used as a guard to filter low-quality responses.",
         ge=0.0,
         le=1.0
     )
 
 
-class RedditObservation(BaseModel):
-    frustration: str = Field(
-        description="The key frustration or pain point expressed"
+class RedditFeedback(BaseModel):
+    comment: str = Field(
+        description="The Reddit comment or feedback text",
+        max_length=300
     )
-    quote: str = Field(
-        description="The exact quote from the Reddit post/comment"
+    username: str = Field(
+        description="Reddit username (e.g., 'u/busymom2024')",
+        pattern=r"^u/[a-zA-Z0-9_-]+$"
     )
-    quote_link: str = Field(
-        description="Direct link to the Reddit post/comment"
+    subreddit: str = Field(
+        description="Subreddit where the comment was found (e.g., 'r/MealPrepSunday')",
+        pattern=r"^r/[a-zA-Z0-9_]+$"
     )
-    implication: str = Field(
-        description="What this observation implies about user needs or product opportunities"
+    link: str = Field(
+        description="Direct URL link to the Reddit comment or post"
     )
 
 
 class RedditSchema(BaseModel):
-    subreddits: List[str] = Field(
-        description="List of subreddit names relevant to the idea and ICP"
+    supportive_feedback: List[RedditFeedback] = Field(
+        description="List of supportive feedback from Reddit comments",
+        min_length=1,
+        max_length=5
     )
-    observations: List[RedditObservation] = Field(
-        description="List of Reddit observations with frustrations, quotes, links, and implications"
+    challenging_feedback: List[RedditFeedback] = Field(
+        description="List of challenging or critical feedback from Reddit comments",
+        min_length=1,
+        max_length=3
+    )
+    relevant_subreddits: List[str] = Field(
+        description="List of relevant subreddit names for research (e.g., 'r/MealPrepSunday', 'r/Cooking')",
+        min_length=4,
+        max_length=8
     )
     confidence: float = Field(
-        description="How confident the model is in the evaluation",
+        description="Confidence score (0.0-1.0) indicating quality and relevance of the Reddit analysis. Used as a guard to filter low-quality responses.",
         ge=0.0,
         le=1.0
     )

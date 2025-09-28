@@ -14,7 +14,7 @@ class AgentService:
                                   user_id: str,
                                   options: Optional[dict] = None) -> ResponseSchema:
 
-        idea = await self.extract_info(user_input=user_input, options=options)
+        idea = await self.extract_idea(user_input=user_input, options=options)
         if idea.confidence < 0.7:
             print(f"Low confidence score: {idea.confidence}")
             return None
@@ -47,16 +47,28 @@ class AgentService:
 
         return response_schema
 
-    async def extract_info(self, user_input: str, options: Optional[dict] = None) -> IdeaSchema:
+    async def extract_idea(self, user_input: str, options: Optional[dict] = None) -> IdeaSchema:
         print("Starting info extraction analysis")
 
         response = await self.llm.generate_parse(
             user_input=user_input,
             system=f"""
-            You are an experienced founder and market researcher. You need to validate an idea and improve it. The goal is to make sure that the idea is solving a real, painful problem and has a clear, feasible path to build and launch. Deconstruct idea backwards to identify the core problem it solves. Answer questions like: “What result does this app create?”, “What\’s hard or frustrating about achieving that result today?”, “Why would someone pay for this?”\n
-            Input: a short textual idea for an app or a business.\n"
-            Rules:\n"
-            - Keep description short (3-4 sentences).\n
+            You are an experienced founder and market researcher. You need to validate an idea and improve it. The goal is to make sure that the idea is solving a real, painful problem and has a clear, feasible path to build and launch.
+
+            Required outputs:
+            - title: Catchy, concise title (max 100 chars)
+            - description: Brief 1-3 sentence overview (max 500 chars)
+            - problem_statement: Clear core problem definition (max 300 chars)
+            - key_features: 3-7 main capabilities/features as bullet points
+            - confidence: Quality score (0.0-1.0) - use as guard for response relevance
+
+            Analysis approach:
+            - Deconstruct idea backwards to identify the core problem it solves
+            - Answer: "What result does this create?", "What's frustrating about achieving that today?", "Why would someone pay for this?"
+            - Focus on pain points, not nice-to-haves
+            - Ensure features directly address the core problem
+
+            Be concise and focused. High confidence (0.8+) only for clear, validated problems with feasible solutions.
             """,
             options=options,
             schema=IdeaSchema
@@ -72,8 +84,23 @@ class AgentService:
         response = await self.llm.generate_parse(
             user_input=context,
             system=f"""
-            You are an experienced founder and market researcher. Create a detailed Ideal Customer Profile (ICP) that includes: Demographics (age, location, occupation), Psychographics (values, beliefs, goals), Pain points related to the problem. Find patterns.\n
-            Input: Business or app idea, with a description, core problem and main functionality.\n"
+            You are an experienced founder and market researcher. Create a detailed Ideal Customer Profile (ICP) based on the provided business idea.
+
+            Required outputs:
+            - target_demographics: 3-6 demographic as tags (e.g., "Busy professionals aged 25-45", "Health-conscious individuals")
+            - ideal_customer_profile: Detailed description of the ideal customer (max 400 chars) including demographics, income, location, and characteristics
+            - pain_points: 3-7 specific pain points the target customers face
+            - user_motivations: 3-7 key motivations that drive users to seek this solution
+            - confidence: Quality score (0.0-1.0) - use as guard for response relevance
+
+            Analysis approach:
+            - Identify patterns in customer behavior and needs
+            - Focus on specific, actionable demographic segments
+            - Ensure pain points directly relate to the core problem
+            - Make motivations clear and compelling
+            - Be specific rather than generic
+
+            High confidence (0.8+) only for well-defined, realistic customer profiles with clear pain points.
             """,
             options=options,
             schema=IcpSchema
@@ -89,14 +116,29 @@ class AgentService:
         response = await self.llm.generate_parse(
             user_input=context,
             system=f"""
-            You output ONLY JSON that validates against RedditSchema. No markdown, no prose.
+            You are an experienced market researcher analyzing Reddit for business validation. Output ONLY valid JSON matching RedditSchema.
 
-            Rules for fields:
-            - observations[*].quote: <= 180 chars, replace any double quotes (") with single quotes (') OR escape them.
-            - No newlines in strings. No trailing commas. Strict JSON.
+            Required outputs:
+            - supportive_feedback: 1-5 positive Reddit comments or posts with username (u/name), subreddit (r/name), comment text (max 300 chars), and link to the comment/post
+            - challenging_feedback: 1-3 critical/negative Reddit comments with same structure
+            - relevant_subreddits: 4-8 subreddit names for further research (format: r/SubredditName)
+            - confidence: Quality score (0.0-1.0) - use as guard for response relevance
 
-            Based on the ICP, identify 3 relevant subreddits where they hang out. Find top upvoted posts related to the problem and analyze their content. Use sentiment analysis or pattern detection to determine if people are frustrated, desperate, or actively seeking solutions. Summarize what you find to help validate if this is a painkiller, not a vitamin.\n
-            Input: Business or app idea, with a description, core problem, main functionality and ideal customer profile (ICP).\n"
+            Field validation rules:
+            - username: Must match pattern "u/[username]" 
+            - subreddit: Must match pattern "r/[subredditname]"
+            - comment: Max 300 chars, replace quotes with single quotes
+            - link: Valid Reddit URL to the comment/post
+            - No newlines in strings, strict JSON format
+
+            Analysis approach:
+            - Find real Reddit discussions about the problem space
+            - Categorize feedback as supportive (validates need) vs challenging (skeptical/critical)
+            - Use sentiment analysis to determine if people are frustrated and seeking solutions
+            - Validate this is a "painkiller" problem (urgent, essential need) vs "vitamin" (nice-to-have enhancement)
+            - Look for evidence of: desperation, active seeking of alternatives, willingness to pay, time/money being wasted
+
+            High confidence (0.8+) only for genuine, relevant Reddit discussions that clearly validate or challenge the business idea.
             """,
             options=options,
             schema=RedditSchema,
