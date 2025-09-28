@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from config.settings import settings
 from services.messenger.telegram import TelegramMessenger
 from services.llm.openai_llm import OpenAILLM
@@ -7,6 +8,14 @@ from services.agent.agent_service import AgentService
 from services.voice.openai_transcriber import OpenAITranscriber
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 processing_messages = set()
 
 messenger = TelegramMessenger(token=settings.TELEGRAM_API_TOKEN)
