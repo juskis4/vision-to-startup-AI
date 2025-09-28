@@ -9,9 +9,5 @@ class Database(ABC):
         raise NotImplementedError("insert_plan method must be implemented")
 
     @abstractmethod
-    def get_plan(self, plan_id: str) -> Optional[Dict[str, Any]]:
-        raise NotImplementedError("get_plan method must be implemented")
-
-    @abstractmethod
-    def list_plans(self) -> List[Dict[str, Any]]:
-        raise NotImplementedError("list_plans method must be implemented")
+    def get_all_ideas(self) -> List[Dict[str, Any]]:
+        raise NotImplementedError("get_all_ideas method must be implemented")

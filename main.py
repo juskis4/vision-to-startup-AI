@@ -76,3 +76,27 @@ async def telegram_webhook(request: Request):
             processing_messages.remove(message_id)
             print(
                 f"Finished processing message {message_id}, removed from processing set")
+
+
+@app.get("/ideas")
+async def get_all_ideas():
+    """
+    Retrieve all ideas from the database, sorted from newest to oldest.
+    Returns:
+        List of ideas with details required for displaying on the home page.
+    """
+    try:
+        ideas = db.get_all_ideas()
+        return {
+            "success": True,
+            "data": ideas,
+            "count": len(ideas)
+        }
+    except Exception as e:
+        print(f"Error retrieving ideas: {str(e)}")
+        return {
+            "success": False,
+            "error": "Failed to retrieve ideas",
+            "data": [],
+            "count": 0
+        }

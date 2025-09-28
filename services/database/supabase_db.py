@@ -17,14 +17,32 @@ class SupabaseDB(Database):
         result = self.client.table("business_plans").insert(data).execute()
         return result.data
 
-    def get_plan(self, plan_id: str) -> Optional[Dict[str, Any]]:
+    def get_all_ideas(self) -> List[Dict[str, Any]]:
         result = self.client.table("business_plans").select(
-            "*").eq("id", plan_id).execute()
-        if result.data:
-            return result.data[0]
-        return None
+            "id, user_id, response, created_at"
+        ).order("created_at", desc=True).execute()
 
-    def list_plans(self) -> List[Dict[str, Any]]:
-        result = self.client.table("business_plans").select(
-            "*").order("created_at", desc=True).execute()
-        return result.data
+        ideas = []
+        for plan in result.data:
+            response = plan.get("response", {})
+            idea_data = response.get("idea", {}) if isinstance(
+                response, dict) else {}
+            icp_data = response.get("icp", {}) if isinstance(
+                response, dict) else {}
+            reddit_data = response.get("reddit_analysis", {}) if isinstance(
+                response, dict) else {}
+
+            idea_entry = {
+                "id": plan["id"],
+                "user_id": plan["user_id"],
+                "created_at": plan["created_at"],
+                "title": idea_data.get("title", ""),
+                "description": idea_data.get("description", ""),
+                "problem_statement": idea_data.get("problem_statement", ""),
+                "target_demographics": icp_data.get("target_demographics", ""),
+                "key_features_count": len(idea_data.get("key_features", [])),
+                "reddit_insights_count": len(reddit_data.get("challenging_feedback", [])) + len(reddit_data.get("supportive_feedback", [])),
+            }
+            ideas.append(idea_entry)
+
+        return ideas
