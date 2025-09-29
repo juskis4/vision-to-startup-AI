@@ -96,3 +96,60 @@ class SupabaseDB(Database):
                 "confidence": reddit_data.get("confidence", 0.0)
             }
         }
+
+    def update_idea_field(self, idea_id: str, field_name: str, field_value: str) -> Dict[str, Any]:
+        try:
+            field_section_map = {
+                "title": "idea",
+                "description": "idea",
+                "problem_statement": "idea",
+                "ideal_customer_profile": "icp"
+            }
+
+            section = field_section_map.get(field_name)
+            if not section:
+                allowed_fields = list(field_section_map.keys())
+                return {
+                    "success": False,
+                    "error": f"Field '{field_name}' is not allowed for update. Allowed fields: {allowed_fields}"
+                }
+
+            result = self.client.table("business_plans").select(
+                "response"
+            ).eq("id", idea_id).execute()
+
+            if not result.data:
+                return {
+                    "success": False,
+                    "error": f"Idea with ID '{idea_id}' not found"
+                }
+
+            response = result.data[0]["response"]
+
+            if section not in response:
+                response[section] = {}
+
+            response[section][field_name] = field_value
+
+            update_result = self.client.table("business_plans").update({
+                "response": response
+            }).eq("id", idea_id).execute()
+
+            if not update_result.data:
+                return {
+                    "success": False,
+                    "error": "Failed to update idea field in database"
+                }
+
+            return {
+                "success": True,
+                "error": None
+            }
+
+        except Exception as e:
+            print(
+                f"Error updating idea field {field_name} for idea {idea_id}: {str(e)}")
+            return {
+                "success": False,
+                "error": "Internal server error occurred while updating idea"
+            }

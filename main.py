@@ -6,6 +6,7 @@ from services.llm.openai_llm import OpenAILLM
 from services.database.supabase_db import SupabaseDB
 from services.agent.agent_service import AgentService
 from services.voice.openai_transcriber import OpenAITranscriber
+from schemas.update import IdeaUpdateRequest
 
 app = FastAPI()
 app.add_middleware(
@@ -142,4 +143,55 @@ async def get_idea_by_id(idea_id: str):
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve idea"
+        )
+
+
+@app.patch("/ideas/{idea_id}")
+async def update_idea_field(idea_id: str, update_request: IdeaUpdateRequest):
+    """
+    Update a specific field of an idea.
+    Only one field can be updated per request.
+    Args:
+        idea_id: The unique identifier of the idea to update
+        update_request: Object containing the field to update (only one field should be provided)
+    Returns:
+        Success status and message
+    """
+    try:
+        update_data = update_request.model_dump(exclude_none=True)
+
+        if len(update_data) != 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Exactly one field must be provided for update"
+            )
+
+        field_name, field_value = next(iter(update_data.items()))
+        result = db.update_idea_field(idea_id, field_name, field_value)
+
+        if result["success"]:
+            return {
+                "success": True,
+                "message": f"Successfully updated {field_name}"
+            }
+        else:
+            if "not found" in result["error"].lower():
+                raise HTTPException(status_code=404, detail=result["error"])
+            elif "not allowed" in result["error"].lower() or "invalid" in result["error"].lower():
+                raise HTTPException(status_code=400, detail=result["error"])
+            else:
+                raise HTTPException(status_code=500, detail=result["error"])
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except Exception as e:
+        print(f"Error updating idea {idea_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to update idea"
         )
