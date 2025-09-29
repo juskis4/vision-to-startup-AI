@@ -6,7 +6,7 @@ from services.llm.openai_llm import OpenAILLM
 from services.database.supabase_db import SupabaseDB
 from services.agent.agent_service import AgentService
 from services.voice.openai_transcriber import OpenAITranscriber
-from schemas.update import IdeaUpdateRequest
+from schemas.update import IdeaUpdateRequest, UpdateKeyFeaturesRequest
 
 app = FastAPI()
 app.add_middleware(
@@ -194,4 +194,45 @@ async def update_idea_field(idea_id: str, update_request: IdeaUpdateRequest):
         raise HTTPException(
             status_code=500,
             detail="Failed to update idea"
+        )
+
+
+@app.put("/ideas/{idea_id}/key-features")
+async def update_key_features(idea_id: str, request: UpdateKeyFeaturesRequest):
+    """
+    Replace the entire key features array for an idea.
+    Args:
+        idea_id: The unique identifier of the idea to update
+        request: Object containing the new list of key features (1-12 items)
+    Returns:
+        Success status and message
+    """
+    try:
+        result = db.update_key_features(idea_id, request.features)
+
+        if result["success"]:
+            return {
+                "success": True,
+                "message": f"Successfully updated key features ({len(request.features)} features)"
+            }
+        else:
+            if "not found" in result["error"].lower():
+                raise HTTPException(status_code=404, detail=result["error"])
+            elif any(keyword in result["error"].lower() for keyword in ["required", "maximum", "minimum"]):
+                raise HTTPException(status_code=400, detail=result["error"])
+            else:
+                raise HTTPException(status_code=500, detail=result["error"])
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except Exception as e:
+        print(f"Error updating key features for idea {idea_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to update key features"
         )

@@ -20,3 +20,8 @@ class Database(ABC):
     def update_idea_field(self, idea_id: str, field_name: str, field_value: str) -> Dict[str, Any]:
         raise NotImplementedError(
             "update_idea_field method must be implemented")
+
+    @abstractmethod
+    def update_key_features(self, idea_id: str, features: List[str]) -> Dict[str, Any]:
+        raise NotImplementedError(
+            "update_key_features method must be implemented")

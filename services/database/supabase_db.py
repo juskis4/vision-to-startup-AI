@@ -153,3 +153,44 @@ class SupabaseDB(Database):
                 "success": False,
                 "error": "Internal server error occurred while updating idea"
             }
+
+    def update_key_features(self, idea_id: str, features: List[str]) -> Dict[str, Any]:
+        try:
+            result = self.client.table("business_plans").select(
+                "response"
+            ).eq("id", idea_id).execute()
+
+            if not result.data:
+                return {
+                    "success": False,
+                    "error": f"Idea with ID '{idea_id}' not found"
+                }
+
+            response = result.data[0]["response"]
+
+            cleaned_features = [feature.strip()
+                                for feature in features if feature.strip()]
+
+            response["idea"]["key_features"] = cleaned_features
+
+            update_result = self.client.table("business_plans").update({
+                "response": response
+            }).eq("id", idea_id).execute()
+
+            if not update_result.data:
+                return {
+                    "success": False,
+                    "error": "Failed to update key features in database"
+                }
+
+            return {
+                "success": True,
+                "error": None
+            }
+
+        except Exception as e:
+            print(f"Error updating key features for idea {idea_id}: {str(e)}")
+            return {
+                "success": False,
+                "error": "Internal server error occurred while updating key features"
+            }

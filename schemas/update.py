@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 
 class IdeaUpdateRequest(BaseModel):
@@ -22,4 +22,12 @@ class IdeaUpdateRequest(BaseModel):
         None,
         description="Updated ideal customer profile",
         max_length=400
+    )
+
+
+class UpdateKeyFeaturesRequest(BaseModel):
+    features: List[str] = Field(
+        description="Complete list of key features to replace existing ones",
+        min_length=1,
+        max_length=12
     )
