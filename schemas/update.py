@@ -25,9 +25,28 @@ class IdeaUpdateRequest(BaseModel):
     )
 
 
-class UpdateKeyFeaturesRequest(BaseModel):
-    features: List[str] = Field(
-        description="Complete list of key features to replace existing ones",
+class UpdateListRequest(BaseModel):
+    key_features: Optional[List[str]] = Field(
+        None,
+        description="Updated list of key features",
+        min_length=1,
+        max_length=12
+    )
+    pain_points: Optional[List[str]] = Field(
+        None,
+        description="Updated list of pain points",
+        min_length=1,
+        max_length=12
+    )
+    target_demographics: Optional[List[str]] = Field(
+        None,
+        description="Updated list of target demographics",
+        min_length=1,
+        max_length=12
+    )
+    user_motivations: Optional[List[str]] = Field(
+        None,
+        description="Updated list of user motivations",
         min_length=1,
         max_length=12
     )

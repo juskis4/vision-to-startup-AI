@@ -6,7 +6,7 @@ from services.llm.openai_llm import OpenAILLM
 from services.database.supabase_db import SupabaseDB
 from services.agent.agent_service import AgentService
 from services.voice.openai_transcriber import OpenAITranscriber
-from schemas.update import IdeaUpdateRequest, UpdateKeyFeaturesRequest
+from schemas.update import IdeaUpdateRequest, UpdateListRequest
 
 app = FastAPI()
 app.add_middleware(
@@ -197,28 +197,39 @@ async def update_idea_field(idea_id: str, update_request: IdeaUpdateRequest):
         )
 
 
-@app.put("/ideas/{idea_id}/key-features")
-async def update_key_features(idea_id: str, request: UpdateKeyFeaturesRequest):
+@app.patch("/ideas/{idea_id}/lists")
+async def update_list(idea_id: str, update_request: UpdateListRequest):
     """
-    Replace the entire key features array for an idea.
+    Update a specific list type of an idea.
+    Only one list type can be updated per request.
     Args:
         idea_id: The unique identifier of the idea to update
-        request: Object containing the new list of key features (1-12 items)
+        update_request: Object containing the list to update (only one list field should be provided)
     Returns:
         Success status and message
     """
     try:
-        result = db.update_key_features(idea_id, request.features)
+        update_data = update_request.model_dump(exclude_none=True)
+
+        if len(update_data) != 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Exactly one list field must be provided for update"
+            )
+
+        list_type, items = next(iter(update_data.items()))
+
+        result = db.update_idea_list(idea_id, list_type, items)
 
         if result["success"]:
             return {
                 "success": True,
-                "message": f"Successfully updated key features ({len(request.features)} features)"
+                "message": f"Successfully updated {list_type.replace('-', ' ')} ({len(items)} items)"
             }
         else:
             if "not found" in result["error"].lower():
                 raise HTTPException(status_code=404, detail=result["error"])
-            elif any(keyword in result["error"].lower() for keyword in ["required", "maximum", "minimum"]):
+            elif any(keyword in result["error"].lower() for keyword in ["invalid", "required", "maximum", "minimum", "at least", "type"]):
                 raise HTTPException(status_code=400, detail=result["error"])
             else:
                 raise HTTPException(status_code=500, detail=result["error"])
@@ -226,13 +237,8 @@ async def update_key_features(idea_id: str, request: UpdateKeyFeaturesRequest):
     except HTTPException:
         raise
     except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        print(f"Error updating key features for idea {idea_id}: {str(e)}")
+        print(f"Error updating lists for idea {idea_id}: {str(e)}")
         raise HTTPException(
-            status_code=500,
-            detail="Failed to update key features"
-        )
+            status_code=500, detail="Failed to update list")

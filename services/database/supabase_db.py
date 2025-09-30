@@ -154,8 +154,23 @@ class SupabaseDB(Database):
                 "error": "Internal server error occurred while updating idea"
             }
 
-    def update_key_features(self, idea_id: str, features: List[str]) -> Dict[str, Any]:
+    def update_idea_list(self, idea_id: str, list_type: str, items: List[str]) -> Dict[str, Any]:
         try:
+            list_section_map = {
+                "key_features": ("idea", "key_features"),
+                "pain_points": ("icp", "pain_points"),
+                "target_demographics": ("icp", "target_demographics"),
+                "user_motivations": ("icp", "user_motivations")
+            }
+
+            if list_type not in list_section_map:
+                return {
+                    "success": False,
+                    "error": f"Field '{list_type}' is not allowed for update."
+                }
+
+            section, field = list_section_map[list_type]
+
             result = self.client.table("business_plans").select(
                 "response"
             ).eq("id", idea_id).execute()
@@ -168,10 +183,11 @@ class SupabaseDB(Database):
 
             response = result.data[0]["response"]
 
-            cleaned_features = [feature.strip()
-                                for feature in features if feature.strip()]
+            if section not in response:
+                response[section] = {}
 
-            response["idea"]["key_features"] = cleaned_features
+            cleaned_items = [item.strip() for item in items if item.strip()]
+            response[section][field] = cleaned_items
 
             update_result = self.client.table("business_plans").update({
                 "response": response
@@ -180,7 +196,7 @@ class SupabaseDB(Database):
             if not update_result.data:
                 return {
                     "success": False,
-                    "error": "Failed to update key features in database"
+                    "error": "Failed to update list in database"
                 }
 
             return {
@@ -189,8 +205,8 @@ class SupabaseDB(Database):
             }
 
         except Exception as e:
-            print(f"Error updating key features for idea {idea_id}: {str(e)}")
+            print(f"Error updating {list_type} for idea {idea_id}: {str(e)}")
             return {
                 "success": False,
-                "error": "Internal server error occurred while updating key features"
+                "error": f"Internal server error occurred while updating {list_type}"
             }
