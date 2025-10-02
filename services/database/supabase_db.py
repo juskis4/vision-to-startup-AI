@@ -210,3 +210,90 @@ class SupabaseDB(Database):
                 "success": False,
                 "error": f"Internal server error occurred while updating {list_type}"
             }
+
+    def save_prompt(self, idea_id: str, service_type: str, prompt: str) -> Dict[str, Any]:
+        try:
+            idea_check = self.client.table("business_plans").select(
+                "id").eq("id", idea_id).execute()
+            if not idea_check.data:
+                return {
+                    "success": False,
+                    "error": f"Idea with ID '{idea_id}' not found"
+                }
+
+            prompt_data = {
+                "idea_id": idea_id,
+                "service_type": service_type,
+                "prompt": prompt,
+                "created_at": "now()",
+                "updated_at": "now()"
+            }
+
+            result = self.client.table("prompts").insert(prompt_data).execute()
+
+            if not result.data:
+                return {
+                    "success": False,
+                    "error": "Failed to save prompt to database"
+                }
+
+            return {
+                "success": True,
+                "prompt_id": result.data[0]["id"],
+                "error": None
+            }
+
+        except Exception as e:
+            print(
+                f"Error saving prompt for idea {idea_id}, service {service_type}: {str(e)}")
+            return {
+                "success": False,
+                "error": f"Internal server error occurred while saving prompt"
+            }
+
+    def get_latest_prompt(self, idea_id: str, service_type: str) -> Optional[Dict[str, Any]]:
+        try:
+            result = self.client.table("prompts").select(
+                "id, idea_id, service_type, prompt, created_at, updated_at"
+            ).eq("idea_id", idea_id).eq("service_type", service_type).order("created_at", desc=True).limit(1).execute()
+
+            if not result.data:
+                return None
+
+            prompt_data = result.data[0]
+            return {
+                "id": prompt_data["id"],
+                "idea_id": prompt_data["idea_id"],
+                "service_type": prompt_data["service_type"],
+                "prompt": prompt_data["prompt"],
+                "created_at": prompt_data["created_at"],
+                "updated_at": prompt_data["updated_at"]
+            }
+
+        except Exception as e:
+            print(
+                f"Error retrieving latest prompt for idea {idea_id}, service {service_type}: {str(e)}")
+            return None
+
+    def get_prompt_by_id(self, prompt_id: str) -> Optional[Dict[str, Any]]:
+        try:
+            result = self.client.table("prompts").select(
+                "id, idea_id, service_type, prompt, created_at, updated_at"
+            ).eq("id", prompt_id).execute()
+
+            if not result.data:
+                return None
+
+            prompt_data = result.data[0]
+            return {
+                "id": prompt_data["id"],
+                "idea_id": prompt_data["idea_id"],
+                "service_type": prompt_data["service_type"],
+                "prompt": prompt_data["prompt"],
+                "created_at": prompt_data["created_at"],
+                "updated_at": prompt_data["updated_at"]
+            }
+
+        except Exception as e:
+            print(f"Error retrieving prompt by ID {prompt_id}: {str(e)}")
+            return None

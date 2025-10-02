@@ -25,3 +25,18 @@ class Database(ABC):
     def update_idea_list(self, idea_id: str, list_type: str, items: List[str]) -> Dict[str, Any]:
         raise NotImplementedError(
             "update_idea_list method must be implemented")
+
+    @abstractmethod
+    def save_prompt(self, idea_id: str, service_type: str, prompt: str) -> Dict[str, Any]:
+        raise NotImplementedError(
+            "save_prompt method must be implemented")
+
+    @abstractmethod
+    def get_latest_prompt(self, idea_id: str, service_type: str) -> Optional[Dict[str, Any]]:
+        raise NotImplementedError(
+            "get_latest_prompt method must be implemented")
+
+    @abstractmethod
+    def get_prompt_by_id(self, prompt_id: str) -> Optional[Dict[str, Any]]:
+        raise NotImplementedError(
+            "get_prompt_by_id method must be implemented")

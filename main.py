@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Header
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from config.settings import settings
 from services.messenger.telegram import TelegramMessenger
@@ -7,6 +8,11 @@ from services.database.supabase_db import SupabaseDB
 from services.agent.agent_service import AgentService
 from services.voice.openai_transcriber import OpenAITranscriber
 from schemas.update import IdeaUpdateRequest, UpdateListRequest
+from schemas.prompts import (
+    PromptGenerateRequest, PromptGenerateResponse, JobStatusResponse,
+    PromptResponse, JobGoneResponse
+)
+from services.redis_jobs import redis_job_manager
 
 app = FastAPI()
 app.add_middleware(
@@ -242,3 +248,187 @@ async def update_list(idea_id: str, update_request: UpdateListRequest):
         print(f"Error updating lists for idea {idea_id}: {str(e)}")
         raise HTTPException(
             status_code=500, detail="Failed to update list")
+
+
+@app.post("/ideas/{idea_id}/prompts:generate", response_model=PromptGenerateResponse)
+async def generate_prompt(
+    idea_id: str,
+    request: PromptGenerateRequest,
+    idempotency_key: str = Header(..., alias="Idempotency-Key")
+):
+    """
+    Start prompt generation (idempotent enqueue)
+    """
+    try:
+        # Validate service type
+        valid_services = ["lovable", "chatgpt", "claude", "cursor", "bolt"]
+        if request.service_type not in valid_services:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid service type '{request.service_type}'. Valid options: {', '.join(valid_services)}"
+            )
+
+        # Validate idea exists
+        idea_data = db.get_idea_by_id(idea_id)
+        if not idea_data:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Idea with ID '{idea_id}' not found"
+            )
+
+        # Check for existing job (idempotency)
+        existing_job_id = redis_job_manager.get_dedupe_job_id(
+            idea_id, request.service_type, idempotency_key)
+        if existing_job_id:
+            job_data = redis_job_manager.get_job(existing_job_id)
+            if job_data:
+                # Return existing job
+                by_id_url = None
+                if job_data.get("prompt_id"):
+                    by_id_url = f"/prompts/{job_data['prompt_id']}"
+
+                return PromptGenerateResponse(
+                    job_id=existing_job_id,
+                    status=job_data["status"],
+                    poll_url=f"/prompt-jobs/{existing_job_id}",
+                    result_url=f"/ideas/{idea_id}/prompts/{request.service_type}",
+                    by_id_url=by_id_url,
+                    retry_after=5
+                )
+
+        # Create new job
+        job_id = redis_job_manager.create_job(
+            idea_id, request.service_type, idempotency_key)
+
+        # Enqueue Celery task
+        from services.workers.prompt_worker import generate_prompt_task
+        generate_prompt_task.delay(job_id)
+
+        return PromptGenerateResponse(
+            job_id=job_id,
+            status="queued",
+            poll_url=f"/prompt-jobs/{job_id}",
+            result_url=f"/ideas/{idea_id}/prompts/{request.service_type}",
+            by_id_url=None,
+            retry_after=5
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error starting prompt generation: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to start prompt generation"
+        )
+
+
+@app.get("/prompt-jobs/{job_id}")
+async def get_job_status(job_id: str):
+    """
+    Poll job status
+    """
+    try:
+        job_data = redis_job_manager.get_job(job_id)
+
+        if not job_data:
+            # Job expired or doesn't exist
+            return JSONResponse(
+                status_code=410,
+                content=JobGoneResponse(
+                    error="Job has expired or does not exist",
+                    suggestion="Check the latest result using the stable URL",
+                    result_url=None  # Can't infer without job data
+                ).model_dump()
+            )
+
+        by_id_url = None
+        if job_data.get("prompt_id"):
+            by_id_url = f"/prompts/{job_data['prompt_id']}"
+
+        return JobStatusResponse(
+            job_id=job_id,
+            status=job_data["status"],
+            progress=job_data["progress"],
+            error=job_data.get("error"),
+            idea_id=job_data["idea_id"],
+            service_type=job_data["service_type"],
+            result_url=f"/ideas/{job_data['idea_id']}/prompts/{job_data['service_type']}",
+            by_id_url=by_id_url
+        )
+
+    except Exception as e:
+        print(f"Error getting job status: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to get job status"
+        )
+
+
+@app.get("/ideas/{idea_id}/prompts/{service_type}", response_model=PromptResponse)
+async def get_latest_prompt(idea_id: str, service_type: str):
+    """
+    Fetch saved prompt - latest for service
+    """
+    try:
+        # Validate service type
+        valid_services = ["lovable", "chatgpt", "claude", "cursor", "bolt"]
+        if service_type not in valid_services:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid service type '{service_type}'. Valid options: {', '.join(valid_services)}"
+            )
+
+        prompt_data = db.get_latest_prompt(idea_id, service_type)
+
+        if not prompt_data:
+            return PromptResponse(
+                success=False,
+                data=None,
+                message=f"No prompt found for idea '{idea_id}' and service '{service_type}'"
+            )
+
+        return PromptResponse(
+            success=True,
+            data=prompt_data,
+            message="Prompt retrieved successfully"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error retrieving latest prompt: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve prompt"
+        )
+
+
+@app.get("/prompts/{prompt_id}", response_model=PromptResponse)
+async def get_prompt_by_id(prompt_id: str):
+    """
+    Get prompt by ID
+    """
+    try:
+        prompt_data = db.get_prompt_by_id(prompt_id)
+
+        if not prompt_data:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Prompt with ID '{prompt_id}' not found"
+            )
+
+        return PromptResponse(
+            success=True,
+            data=prompt_data,
+            message="Prompt retrieved successfully"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error retrieving prompt by ID: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve prompt"
+        )
