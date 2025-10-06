@@ -1,5 +1,4 @@
 from fastapi import FastAPI, Request, HTTPException, Header
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from config.settings import settings
 from services.messenger.telegram import TelegramMessenger
@@ -8,11 +7,9 @@ from services.database.supabase_db import SupabaseDB
 from services.agent.agent_service import AgentService
 from services.voice.openai_transcriber import OpenAITranscriber
 from schemas.update import IdeaUpdateRequest, UpdateListRequest
-from schemas.prompts import (
-    PromptGenerateRequest, PromptGenerateResponse, JobStatusResponse,
-    PromptResponse, JobGoneResponse
-)
+from schemas.prompts import PromptGenerateRequest, PromptGenerateResponse, JobStatusResponse, PromptResponse
 from services.redis_jobs import redis_job_manager
+from services.workers.prompt_worker import generate_prompt_task
 
 app = FastAPI()
 app.add_middleware(
@@ -256,19 +253,14 @@ async def generate_prompt(
     request: PromptGenerateRequest,
     idempotency_key: str = Header(..., alias="Idempotency-Key")
 ):
-    """
-    Start prompt generation (idempotent enqueue)
-    """
     try:
-        # Validate service type
-        valid_services = ["lovable", "chatgpt", "claude", "cursor", "bolt"]
+        valid_services = ["lovable"]
         if request.service_type not in valid_services:
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid service type '{request.service_type}'. Valid options: {', '.join(valid_services)}"
             )
 
-        # Validate idea exists
         idea_data = db.get_idea_by_id(idea_id)
         if not idea_data:
             raise HTTPException(
@@ -276,13 +268,12 @@ async def generate_prompt(
                 detail=f"Idea with ID '{idea_id}' not found"
             )
 
-        # Check for existing job (idempotency)
         existing_job_id = redis_job_manager.get_dedupe_job_id(
             idea_id, request.service_type, idempotency_key)
+
         if existing_job_id:
             job_data = redis_job_manager.get_job(existing_job_id)
             if job_data:
-                # Return existing job
                 by_id_url = None
                 if job_data.get("prompt_id"):
                     by_id_url = f"/prompts/{job_data['prompt_id']}"
@@ -292,8 +283,7 @@ async def generate_prompt(
                     status=job_data["status"],
                     poll_url=f"/prompt-jobs/{existing_job_id}",
                     result_url=f"/ideas/{idea_id}/prompts/{request.service_type}",
-                    by_id_url=by_id_url,
-                    retry_after=5
+                    by_id_url=by_id_url
                 )
 
         # Create new job
@@ -301,7 +291,6 @@ async def generate_prompt(
             idea_id, request.service_type, idempotency_key)
 
         # Enqueue Celery task
-        from services.workers.prompt_worker import generate_prompt_task
         generate_prompt_task.delay(job_id)
 
         return PromptGenerateResponse(
@@ -309,8 +298,7 @@ async def generate_prompt(
             status="queued",
             poll_url=f"/prompt-jobs/{job_id}",
             result_url=f"/ideas/{idea_id}/prompts/{request.service_type}",
-            by_id_url=None,
-            retry_after=5
+            by_id_url=None
         )
 
     except HTTPException:
@@ -323,23 +311,15 @@ async def generate_prompt(
         )
 
 
-@app.get("/prompt-jobs/{job_id}")
+@app.get("/prompt-jobs/{job_id}", response_model=JobStatusResponse)
 async def get_job_status(job_id: str):
-    """
-    Poll job status
-    """
     try:
         job_data = redis_job_manager.get_job(job_id)
 
         if not job_data:
-            # Job expired or doesn't exist
-            return JSONResponse(
+            raise HTTPException(
                 status_code=410,
-                content=JobGoneResponse(
-                    error="Job has expired or does not exist",
-                    suggestion="Check the latest result using the stable URL",
-                    result_url=None  # Can't infer without job data
-                ).model_dump()
+                detail="Job has expired or does not exist"
             )
 
         by_id_url = None
@@ -354,7 +334,9 @@ async def get_job_status(job_id: str):
             idea_id=job_data["idea_id"],
             service_type=job_data["service_type"],
             result_url=f"/ideas/{job_data['idea_id']}/prompts/{job_data['service_type']}",
-            by_id_url=by_id_url
+            by_id_url=by_id_url,
+            retry_after=5 if job_data["status"] in [
+                "queued", "running"] else None
         )
 
     except Exception as e:
@@ -367,12 +349,8 @@ async def get_job_status(job_id: str):
 
 @app.get("/ideas/{idea_id}/prompts/{service_type}", response_model=PromptResponse)
 async def get_latest_prompt(idea_id: str, service_type: str):
-    """
-    Fetch saved prompt - latest for service
-    """
     try:
-        # Validate service type
-        valid_services = ["lovable", "chatgpt", "claude", "cursor", "bolt"]
+        valid_services = ["lovable"]
         if service_type not in valid_services:
             raise HTTPException(
                 status_code=400,
@@ -382,10 +360,9 @@ async def get_latest_prompt(idea_id: str, service_type: str):
         prompt_data = db.get_latest_prompt(idea_id, service_type)
 
         if not prompt_data:
-            return PromptResponse(
-                success=False,
-                data=None,
-                message=f"No prompt found for idea '{idea_id}' and service '{service_type}'"
+            raise HTTPException(
+                status_code=404,
+                detail=f"No prompt found for idea '{idea_id}' and service '{service_type}'"
             )
 
         return PromptResponse(
@@ -406,9 +383,6 @@ async def get_latest_prompt(idea_id: str, service_type: str):
 
 @app.get("/prompts/{prompt_id}", response_model=PromptResponse)
 async def get_prompt_by_id(prompt_id: str):
-    """
-    Get prompt by ID
-    """
     try:
         prompt_data = db.get_prompt_by_id(prompt_id)
 

@@ -19,8 +19,6 @@ class PromptGenerateResponse(BaseModel):
         description="URL to get latest prompt for this service")
     by_id_url: Optional[str] = Field(
         None, description="URL to get prompt by ID (available after success)")
-    retry_after: Optional[int] = Field(
-        None, description="Recommended polling interval in seconds")
 
 
 class JobStatusResponse(BaseModel):
@@ -36,6 +34,8 @@ class JobStatusResponse(BaseModel):
         description="URL to get latest prompt for this service")
     by_id_url: Optional[str] = Field(
         None, description="URL to get prompt by ID (available after success)")
+    retry_after: Optional[int] = Field(
+        None, description="Recommended polling interval in seconds")
 
 
 class PromptData(BaseModel):
@@ -54,11 +54,3 @@ class PromptResponse(BaseModel):
     data: Optional[PromptData] = Field(
         None, description="Prompt data if found")
     message: Optional[str] = Field(None, description="Status message")
-
-
-class JobGoneResponse(BaseModel):
-    """Response schema when job has expired"""
-    error: str = Field(description="Error message")
-    suggestion: str = Field(description="Suggested action")
-    result_url: Optional[str] = Field(
-        None, description="URL to check for latest result")

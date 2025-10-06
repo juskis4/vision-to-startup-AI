@@ -1,7 +1,6 @@
 import redis
-import json
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, Dict, Any
 from config.settings import settings
 
@@ -16,7 +15,7 @@ class RedisJobManager:
             db=settings.REDIS_DB,
             decode_responses=True
         )
-        self.job_ttl = 48 * 3600  # 48 hours in seconds
+        self.job_ttl = 48 * 3600
 
     def create_job(
         self,
