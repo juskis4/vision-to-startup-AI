@@ -1,7 +1,7 @@
 from services.llm.base import LLM
 from services.database.base import Database
 from typing import Optional
-from schemas.idea import IdeaSchema, IcpSchema, RedditSchema, ResponseSchema
+from schemas.idea import IdeaSchema, IcpSchema, RedditSchema, ResponseSchema, WebsitePromptSchema
 
 
 class AgentService:
@@ -148,3 +148,110 @@ class AgentService:
         print(
             f"Extraction complete, Confidence: {response.confidence:.2f}")
         return response
+
+    async def generate_script(self, idea_data: dict, service_type: str, options: Optional[dict] = None) -> dict:
+        # TODO: Replace with actual LLM call when ready
+        import asyncio
+        await asyncio.sleep(60)
+
+        dummy_script = f"""
+        # Website Development Prompt for {service_type}
+        
+        ## Project Overview
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        
+        ## Technical Specifications
+        
+        ### Database Schema
+        ```sql
+        CREATE TABLE users (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE TABLE projects (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            title VARCHAR(255) NOT NULL,
+            description TEXT,
+            status VARCHAR(50) DEFAULT 'draft'
+        );
+        ```
+        
+        ### API Endpoints
+        - GET /api/users - Retrieve user information
+        - POST /api/auth/login - User authentication
+        - GET /api/projects - List user projects
+        - POST /api/projects - Create new project
+        
+        ### Frontend Components
+        1. **Header Component** - Navigation and user menu
+        2. **Dashboard** - Main user interface
+        3. **Project List** - Display user projects
+        4. **Project Form** - Create/edit projects
+        
+        ## Implementation Details
+        
+        ### Technology Stack
+        - Frontend: React.js with TypeScript
+        - Backend: Node.js with Express
+        - Database: PostgreSQL
+        - Authentication: JWT tokens
+        - Styling: Tailwind CSS
+        
+        ### File Structure
+        ```
+        /src
+            /components
+            Header.tsx
+            Dashboard.tsx
+            ProjectList.tsx
+            /pages
+            Login.tsx
+            Home.tsx
+            /services
+            api.ts
+            auth.ts
+        ```
+        
+        ### Key Features
+        - User registration and authentication
+        - Project creation and management
+        - Real-time updates
+        - Responsive design
+        - Data validation and error handling
+        
+        ## User Experience
+        
+        ### User Journey
+        1. Landing page with clear value proposition
+        2. Simple registration/login process
+        3. Intuitive dashboard layout
+        4. Easy project creation workflow
+        
+        ### Design Principles
+        - Clean, modern interface
+        - Consistent color scheme and typography
+        - Mobile-first responsive design
+        - Accessibility compliance (WCAG 2.1)
+        
+        ## Security Considerations
+        - Password hashing with bcrypt
+        - JWT token expiration
+        - HTTPS enforcement
+        - Input validation and sanitization
+        - CORS configuration
+        
+        Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+        """
+
+        print(
+            f"Script generation complete (dummy mode), Service: {service_type}")
+
+        return {
+            "script": dummy_script.strip(),
+            "confidence": 0.85,  # Dummy confidence score
+            "service_type": service_type
+        }
