@@ -2,12 +2,13 @@ from celery import Celery
 from config.settings import settings
 import os
 
-# Build Redis URL with optional auth
-redis_password = getattr(settings, 'REDIS_PASSWORD', None)
-if redis_password:
-    redis_url = f"redis://:{redis_password}@{settings.REDIS_HOST}:{settings.REDIS_PORT}/{settings.REDIS_DB}"
-else:
-    redis_url = f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/{settings.REDIS_DB}"
+redis_url = getattr(settings, 'REDIS_URL', None)
+if not redis_url:
+    redis_password = getattr(settings, 'REDIS_PASSWORD', None)
+    if redis_password:
+        redis_url = f"redis://:{redis_password}@{settings.REDIS_HOST}:{settings.REDIS_PORT}/{settings.REDIS_DB}"
+    else:
+        redis_url = f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/{settings.REDIS_DB}"
 
 # Create Celery app
 celery_app = Celery(

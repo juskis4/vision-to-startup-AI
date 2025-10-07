@@ -4,4 +4,12 @@ services:
     env: docker
     plan: free
     branch: main
-    autoDeploy: false
+    autoDeploy: true
+    
+  - type: worker
+    name: vision-to-startup-ai-worker
+    env: docker
+    plan: free
+    branch: main
+    autoDeploy: true
+    dockerCommand: celery -A services.celery_app worker --loglevel=info --queues=prompt_generation --pool=gevent --concurrency=2
