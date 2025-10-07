@@ -6,15 +6,29 @@ from config.settings import settings
 
 
 class RedisJobManager:
-    """Manages ephemeral job state in Redis with TTL"""
 
     def __init__(self):
-        self.redis_client = redis.Redis(
-            host=settings.REDIS_HOST,
-            port=settings.REDIS_PORT,
-            db=settings.REDIS_DB,
-            decode_responses=True
-        )
+        redis_url = getattr(settings, 'REDIS_URL', None)
+        if redis_url and redis_url.strip():
+            self.redis_client = redis.from_url(
+                redis_url, decode_responses=True)
+        else:
+            redis_password = getattr(settings, 'REDIS_PASSWORD', None)
+            if redis_password:
+                self.redis_client = redis.Redis(
+                    host=settings.REDIS_HOST,
+                    port=settings.REDIS_PORT,
+                    password=redis_password,
+                    db=settings.REDIS_DB,
+                    decode_responses=True
+                )
+            else:
+                self.redis_client = redis.Redis(
+                    host=settings.REDIS_HOST,
+                    port=settings.REDIS_PORT,
+                    db=settings.REDIS_DB,
+                    decode_responses=True
+                )
         self.job_ttl = 48 * 3600
 
     def create_job(
