@@ -7,7 +7,7 @@ from services.database.supabase_db import SupabaseDB
 from services.agent.agent_service import AgentService
 from services.voice.openai_transcriber import OpenAITranscriber
 from schemas.update import IdeaUpdateRequest, UpdateListRequest
-from schemas.prompts import PromptGenerateRequest, PromptGenerateResponse, JobStatusResponse, PromptResponse
+from schemas.prompts import PromptGenerateResponse, JobStatusResponse, PromptResponse
 from services.redis_jobs import redis_job_manager
 from services.workers.prompt_worker import generate_prompt_task
 
@@ -247,18 +247,18 @@ async def update_list(idea_id: str, update_request: UpdateListRequest):
             status_code=500, detail="Failed to update list")
 
 
-@app.post("/ideas/{idea_id}/prompts:generate", response_model=PromptGenerateResponse)
+@app.post("/ideas/{idea_id}/prompts", response_model=PromptGenerateResponse)
 async def generate_prompt(
     idea_id: str,
-    request: PromptGenerateRequest,
+    service_type: str,
     idempotency_key: str = Header(..., alias="Idempotency-Key")
 ):
     try:
         valid_services = ["lovable"]
-        if request.service_type not in valid_services:
+        if service_type not in valid_services:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid service type '{request.service_type}'. Valid options: {', '.join(valid_services)}"
+                detail=f"Invalid service type '{service_type}'. Valid options: {', '.join(valid_services)}"
             )
 
         idea_data = db.get_idea_by_id(idea_id)
@@ -269,7 +269,7 @@ async def generate_prompt(
             )
 
         existing_job_id = redis_job_manager.get_dedupe_job_id(
-            idea_id, request.service_type, idempotency_key)
+            idea_id, service_type, idempotency_key)
 
         if existing_job_id:
             job_data = redis_job_manager.get_job(existing_job_id)
@@ -282,13 +282,13 @@ async def generate_prompt(
                     job_id=existing_job_id,
                     status=job_data["status"],
                     poll_url=f"/prompt-jobs/{existing_job_id}",
-                    result_url=f"/ideas/{idea_id}/prompts/{request.service_type}",
+                    result_url=f"/ideas/{idea_id}/prompts/{service_type}",
                     by_id_url=by_id_url
                 )
 
         # Create new job
         job_id = redis_job_manager.create_job(
-            idea_id, request.service_type, idempotency_key)
+            idea_id, service_type, idempotency_key)
 
         # Enqueue Celery task
         generate_prompt_task.delay(job_id)
@@ -297,7 +297,7 @@ async def generate_prompt(
             job_id=job_id,
             status="queued",
             poll_url=f"/prompt-jobs/{job_id}",
-            result_url=f"/ideas/{idea_id}/prompts/{request.service_type}",
+            result_url=f"/ideas/{idea_id}/prompts/{service_type}",
             by_id_url=None
         )
 

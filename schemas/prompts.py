@@ -3,13 +3,6 @@ from typing import Optional
 from datetime import datetime
 
 
-class PromptGenerateRequest(BaseModel):
-    """Request schema for starting prompt generation"""
-    idea_id: str = Field(description="UUID of the idea to generate prompt for")
-    service_type: str = Field(
-        description="Service type: lovable, chatgpt, claude, cursor, bolt")
-
-
 class PromptGenerateResponse(BaseModel):
     """Response schema for starting prompt generation"""
     job_id: str = Field(description="Job ID for tracking generation progress")
