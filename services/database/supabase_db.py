@@ -297,3 +297,27 @@ class SupabaseDB(Database):
         except Exception as e:
             print(f"Error retrieving prompt by ID {prompt_id}: {str(e)}")
             return None
+
+    def get_prompts_metadata_by_idea_id(self, idea_id: str) -> List[Dict[str, Any]]:
+        try:
+            result = self.client.table("prompts").select(
+                "id, service_type, created_at"
+            ).eq("idea_id", idea_id).order("created_at", desc=True).execute()
+
+            if not result.data:
+                return []
+
+            prompts_metadata = []
+            for prompt_data in result.data:
+                prompts_metadata.append({
+                    "prompt_id": prompt_data["id"],
+                    "service_type": prompt_data["service_type"],
+                    "created_at": prompt_data["created_at"]
+                })
+
+            return prompts_metadata
+
+        except Exception as e:
+            print(
+                f"Error retrieving prompts metadata for idea {idea_id}: {str(e)}")
+            return []

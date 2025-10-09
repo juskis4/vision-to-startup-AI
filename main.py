@@ -118,12 +118,12 @@ async def get_all_ideas():
 @app.get("/ideas/{idea_id}")
 async def get_idea_by_id(idea_id: str):
     """
-    Retrieve a single idea by its ID with complete details.
+    Retrieve a single idea by its ID with complete details including prompts history.
     Args:
         idea_id: The unique identifier of the idea to retrieve
     Returns:
         Complete idea details including original input, processed analysis,
-        ICP data, Reddit analysis.
+        ICP data, Reddit analysis, and prompts history.
     """
     try:
         idea = db.get_idea_by_id(idea_id)
@@ -133,6 +133,14 @@ async def get_idea_by_id(idea_id: str):
                 status_code=404,
                 detail=f"Idea with ID '{idea_id}' not found"
             )
+
+        try:
+            prompts_history = db.get_prompts_metadata_by_idea_id(idea_id)
+            idea["prompts_history"] = prompts_history
+        except Exception as e:
+            print(
+                f"Error retrieving prompts history for idea {idea_id}: {str(e)}")
+            idea["prompts_history"] = []
 
         return {
             "success": True,
