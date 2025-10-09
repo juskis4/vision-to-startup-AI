@@ -40,3 +40,13 @@ class Database(ABC):
     def get_prompt_by_id(self, prompt_id: str) -> Optional[Dict[str, Any]]:
         raise NotImplementedError(
             "get_prompt_by_id method must be implemented")
+
+    @abstractmethod
+    def get_prompts_metadata_by_idea_id(self, idea_id: str) -> List[Dict[str, Any]]:
+        raise NotImplementedError(
+            "get_prompts_metadata_by_idea_id method must be implemented")
+
+    @abstractmethod
+    def get_latest_prompt_for_idea_details(self, idea_id: str, service_type: str) -> Optional[Dict[str, Any]]:
+        raise NotImplementedError(
+            "get_latest_prompt_for_idea_details method must be implemented")

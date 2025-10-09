@@ -142,6 +142,15 @@ async def get_idea_by_id(idea_id: str):
                 f"Error retrieving prompts history for idea {idea_id}: {str(e)}")
             idea["prompts_history"] = []
 
+        try:
+            latest_prompt = db.get_latest_prompt_for_idea_details(
+                idea_id, "lovable")
+            idea["latest_prompt"] = latest_prompt
+        except Exception as e:
+            print(
+                f"Error retrieving latest prompt for idea {idea_id}: {str(e)}")
+            idea["latest_prompt"] = None
+
         return {
             "success": True,
             "data": idea

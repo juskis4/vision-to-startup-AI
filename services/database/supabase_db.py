@@ -321,3 +321,25 @@ class SupabaseDB(Database):
             print(
                 f"Error retrieving prompts metadata for idea {idea_id}: {str(e)}")
             return []
+
+    def get_latest_prompt_for_idea_details(self, idea_id: str, service_type: str) -> Optional[Dict[str, Any]]:
+        try:
+            result = self.client.table("prompts").select(
+                "id, service_type, prompt, created_at"
+            ).eq("idea_id", idea_id).eq("service_type", service_type).order("created_at", desc=True).limit(1).execute()
+
+            if not result.data:
+                return None
+
+            prompt_data = result.data[0]
+            return {
+                "id": prompt_data["id"],
+                "service_type": prompt_data["service_type"],
+                "prompt": prompt_data["prompt"],
+                "created_at": prompt_data["created_at"]
+            }
+
+        except Exception as e:
+            print(
+                f"Error retrieving latest prompt for idea details {idea_id}, service {service_type}: {str(e)}")
+            return None
