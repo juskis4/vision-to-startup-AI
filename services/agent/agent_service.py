@@ -152,7 +152,7 @@ class AgentService:
     async def generate_script(self, idea_data: dict, service_type: str, options: Optional[dict] = None) -> dict:
         # TODO: Replace with actual LLM call when ready
         import asyncio
-        await asyncio.sleep(60)
+        await asyncio.sleep(25)
 
         dummy_script = f"""
         # Website Development Prompt for {service_type}
