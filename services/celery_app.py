@@ -15,7 +15,7 @@ celery_app = Celery(
     "noteai",
     broker=redis_url,
     backend=redis_url,
-    include=["services.workers.prompt_worker"]
+    include=["services.workers.prompt_worker", "services.workers.idea_worker"]
 )
 
 # Celery configuration
@@ -39,7 +39,8 @@ celery_app.conf.update(
 
     # Routing
     task_routes={
-        "services.workers.prompt_worker.generate_prompt_task": {"queue": "prompt_generation"}
+        "services.workers.prompt_worker.generate_prompt_task": {"queue": "prompt_generation"},
+        "services.workers.idea_worker.generate_idea_task": {"queue": "idea_generation"}
     },
 
     # Timezone

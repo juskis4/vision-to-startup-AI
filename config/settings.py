@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     SUPABASE_URL: str
     SUPABASE_KEY: str
 
-    # Render Managed Redis (primary)
-    REDIS_URL: str
+    # Render Managed Redis (primary) - Optional for local development
+    REDIS_URL: str = ""
 
     # Fallback for local development
     REDIS_HOST: str = "localhost"

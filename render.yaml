@@ -12,4 +12,4 @@ services:
     plan: free
     branch: main
     autoDeploy: true
-    dockerCommand: celery -A services.celery_app worker --loglevel=info --queues=prompt_generation --pool=gevent --concurrency=2
+    dockerCommand: celery -A services.celery_app worker --loglevel=info --queues=prompt_generation,idea_generation --pool=gevent --concurrency=2

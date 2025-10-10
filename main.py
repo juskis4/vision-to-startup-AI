@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException, Header
+from fastapi import FastAPI, Request, HTTPException, Header, Body
 from fastapi.middleware.cors import CORSMiddleware
 from config.settings import settings
 from services.messenger.telegram import TelegramMessenger
@@ -8,8 +8,11 @@ from services.agent.agent_service import AgentService
 from services.voice.openai_transcriber import OpenAITranscriber
 from schemas.update import IdeaUpdateRequest, UpdateListRequest
 from schemas.prompts import PromptGenerateResponse, JobStatusResponse, PromptResponse
+from schemas.idea_generation import IdeaGenerateResponse, IdeaJobStatusResponse
 from services.redis_jobs import redis_job_manager
 from services.workers.prompt_worker import generate_prompt_task
+from services.workers.idea_worker import generate_idea_task
+import json
 
 app = FastAPI()
 app.add_middleware(
@@ -89,6 +92,85 @@ async def telegram_webhook(request: Request):
             processing_messages.remove(message_id)
             print(
                 f"Finished processing message {message_id}, removed from processing set")
+
+
+@app.post("/ideas/generate", response_model=IdeaGenerateResponse)
+async def generate_idea(
+    user_input: str = Body(..., embed=True),
+    idempotency_key: str = Header(..., alias="Idempotency-Key")
+):
+    """
+    Start async idea generation for web frontend
+    """
+    try:
+        if not user_input or not user_input.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="User input is required"
+            )
+
+        user_id = "web_user"
+
+        existing_job_id = redis_job_manager.get_dedupe_job_id(
+            f"idea_generation_{user_id}", "idea", idempotency_key)
+
+        if existing_job_id:
+            job_data = redis_job_manager.get_job(existing_job_id)
+            if job_data:
+                result_url = None
+                result_str = job_data.get("result")
+                if result_str:
+                    try:
+                        result_dict = json.loads(result_str)
+                        idea_id = result_dict.get("idea_id")
+                        if idea_id:
+                            result_url = f"/ideas/{idea_id}"
+                    except:
+                        pass
+
+                return IdeaGenerateResponse(
+                    job_id=existing_job_id,
+                    status=job_data["status"],
+                    poll_url=f"/idea-jobs/{existing_job_id}",
+                    result_url=result_url
+                )
+
+        llm_options = {
+            "model": settings.DEFAULT_MODEL,
+            "temperature": settings.DEFAULT_TEMPERATURE,
+            "max_tokens": settings.MAX_TOKENS
+        }
+
+        # Create new job
+        job_id = redis_job_manager.create_job(
+            f"idea_generation_{user_id}",
+            "idea",
+            idempotency_key,
+            additional_data={
+                "user_input": user_input.strip(),
+                "user_id": user_id,
+                "options": None
+            }
+        )
+
+        # Enqueue Celery task
+        generate_idea_task.delay(job_id)
+
+        return IdeaGenerateResponse(
+            job_id=job_id,
+            status="queued",
+            poll_url=f"/idea-jobs/{job_id}",
+            result_url=None
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error starting idea generation: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to start idea generation"
+        )
 
 
 @app.get("/ideas")
@@ -262,6 +344,57 @@ async def update_list(idea_id: str, update_request: UpdateListRequest):
         print(f"Error updating lists for idea {idea_id}: {str(e)}")
         raise HTTPException(
             status_code=500, detail="Failed to update list")
+
+
+@app.get("/idea-jobs/{job_id}", response_model=IdeaJobStatusResponse)
+async def get_idea_job_status(job_id: str):
+    """
+    Get status of idea generation job
+    """
+    try:
+        job_data = redis_job_manager.get_job(job_id)
+
+        if not job_data:
+            raise HTTPException(
+                status_code=410,
+                detail="Job has expired or does not exist"
+            )
+
+        result_url = None
+        idea_id = None
+
+        # Parse result if it exists
+        result_str = job_data.get("result")
+        if result_str:
+            try:
+                import json
+                result_dict = json.loads(result_str)
+                idea_id = result_dict.get("idea_id")
+                if idea_id:
+                    result_url = f"/ideas/{idea_id}"
+            except:
+                pass  # If parsing fails, just continue without result
+
+        return IdeaJobStatusResponse(
+            job_id=job_id,
+            status=job_data["status"],
+            progress=job_data["progress"],
+            error=job_data.get("error"),
+            user_id=job_data.get("user_id", "web_user"),
+            idea_id=idea_id,
+            result_url=result_url,
+            retry_after=5 if job_data["status"] in [
+                "queued", "running"] else None
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting idea job status: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to get job status"
+        )
 
 
 @app.post("/ideas/{idea_id}/prompts", response_model=PromptGenerateResponse)

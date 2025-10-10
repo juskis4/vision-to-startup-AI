@@ -1,5 +1,6 @@
 import redis
 import uuid
+import json
 from datetime import datetime
 from typing import Optional, Dict, Any
 from config.settings import settings
@@ -35,7 +36,8 @@ class RedisJobManager:
         self,
         idea_id: str,
         service_type: str,
-        idempotency_key: str
+        idempotency_key: str,
+        additional_data: Optional[Dict[str, Any]] = None
     ) -> str:
         """Create a new job and return job_id"""
         job_id = str(uuid.uuid4())
@@ -59,6 +61,10 @@ class RedisJobManager:
             "prompt_id": "",
             "created_at": datetime.utcnow().isoformat()
         }
+
+        # Add additional data if provided
+        if additional_data:
+            job_data.update(additional_data)
 
         # Set job data with TTL
         self.redis_client.hset(job_key, mapping=job_data)
@@ -127,6 +133,22 @@ class RedisJobManager:
         """Get existing job ID for idempotency check"""
         dedupe_key = f"prompt_job_dedupe:{idea_id}:{service_type}:{idempotency_key}"
         return self.redis_client.get(dedupe_key)
+
+    def complete_job(self, job_id: str, result: Optional[Dict[str, Any]] = None) -> bool:
+        """Mark job as completed with optional result data"""
+        updates = {
+            "status": "succeeded",
+            "progress": "1.0",
+            "error": ""
+        }
+        if result:
+            # Store as JSON string for proper serialization
+            updates["result"] = json.dumps(result)
+        return self.update_job(job_id, **updates)
+
+    def fail_job(self, job_id: str, error_message: str) -> bool:
+        """Mark job as failed with error message"""
+        return self.update_job(job_id, status="failed", error=error_message)
 
 
 # Global instance
