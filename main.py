@@ -135,12 +135,6 @@ async def generate_idea(
                     result_url=result_url
                 )
 
-        llm_options = {
-            "model": settings.DEFAULT_MODEL,
-            "temperature": settings.DEFAULT_TEMPERATURE,
-            "max_tokens": settings.MAX_TOKENS
-        }
-
         # Create new job
         job_id = redis_job_manager.create_job(
             f"idea_generation_{user_id}",
@@ -148,8 +142,7 @@ async def generate_idea(
             idempotency_key,
             additional_data={
                 "user_input": user_input.strip(),
-                "user_id": user_id,
-                "options": None
+                "user_id": user_id
             }
         )
 

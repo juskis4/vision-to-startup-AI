@@ -34,7 +34,11 @@ def generate_idea_task(self, job_id: str):
         # Extract job parameters
         user_input = job_data["user_input"]
         user_id = job_data["user_id"]
-        options = job_data.get("options")
+        llm_options = {
+            "model": settings.DEFAULT_MODEL,
+            "temperature": settings.DEFAULT_TEMPERATURE,
+            "max_tokens": settings.MAX_TOKENS
+        }
 
         redis_job_manager.update_job(job_id, status="running", progress=0.1)
 
@@ -50,7 +54,7 @@ def generate_idea_task(self, job_id: str):
                 agent.handle_user_message(
                     user_input=user_input,
                     user_id=user_id,
-                    options=options
+                    options=llm_options
                 )
             )
 
