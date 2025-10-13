@@ -99,16 +99,3 @@ class ResponseSchema(BaseModel):
     idea: IdeaSchema = Field()
     icp: IcpSchema = Field()
     reddit_analysis: RedditSchema = Field()
-
-
-class WebsitePromptSchema(BaseModel):
-    script: str = Field(
-        description="Complete website development prompt/script containing all technical specifications, features, and implementation details",
-        min_length=500,
-        max_length=10000
-    )
-    confidence: float = Field(
-        description="Confidence score (0.0-1.0) indicating quality and completeness of the generated prompt.",
-        ge=0.0,
-        le=1.0
-    )
