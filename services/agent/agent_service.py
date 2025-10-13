@@ -1,7 +1,7 @@
 from services.llm.base import LLM
 from services.database.base import Database
 from typing import Optional
-from schemas.idea import IdeaSchema, IcpSchema, RedditSchema, ResponseSchema, WebsitePromptSchema
+from schemas.idea import IdeaSchema, IcpSchema, RedditSchema, ResponseSchema
 
 
 class AgentService:
