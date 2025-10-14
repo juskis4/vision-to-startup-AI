@@ -80,6 +80,8 @@ async def telegram_webhook(request: Request):
 
         if reply:
             await messenger.send_message(chat_id, reply.model_dump_json())
+        else:
+            await messenger.send_message(chat_id, "Sorry, something went wrong.")
 
         return {"ok": True}
 

@@ -28,7 +28,7 @@ class AgentService:
             context=f"{idea.model_dump_json()}\n\n{icp.model_dump_json()}",
             options=options
         )
-        if reddit.confidence < 0.7:
+        if reddit.confidence < 0.5:
             print(f"Low confidence score: {reddit.confidence}")
             return None
 
