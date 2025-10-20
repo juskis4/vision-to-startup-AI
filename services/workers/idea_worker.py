@@ -43,40 +43,24 @@ def generate_idea_task(self, job_id: str):
         redis_job_manager.update_job(job_id, status="running", progress=0.1)
 
         # Process idea generation using agent service
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        redis_job_manager.update_job(job_id, status="running", progress=0.5)
 
-        try:
-            redis_job_manager.update_job(
-                job_id, status="running", progress=0.5)
-
-            response_schema = loop.run_until_complete(
-                agent.handle_user_message(
-                    user_input=user_input,
-                    user_id=user_id,
-                    options=llm_options
-                )
+        response_schema = asyncio.run(
+            agent.handle_user_message(
+                user_input=user_input,
+                user_id=user_id,
+                options=llm_options
             )
+        )
 
-            redis_job_manager.update_job(
-                job_id, status="running", progress=0.9)
+        redis_job_manager.update_job(job_id, status="running", progress=0.9)
 
-            if response_schema:
-                # For async jobs, we need to get the idea ID from the database
-                # The agent service inserts the data but doesn't return the ID
-                # We'll use the response data as our result for now
-                redis_job_manager.complete_job(job_id, {
-                    "response": response_schema.model_dump(),
-                    "message": "Idea generated successfully"
-                })
-                print(
-                    f"Idea generation completed successfully for job {job_id}")
-            else:
-                redis_job_manager.fail_job(
-                    job_id, "Low confidence scores - idea generation failed")
-
-        finally:
-            loop.close()
+        if response_schema:
+            redis_job_manager.complete_job(job_id)
+            print(f"Idea generation completed successfully for job {job_id}")
+        else:
+            redis_job_manager.fail_job(
+                job_id, "Low confidence scores - idea generation failed")
 
     except Exception as e:
         print(f"Error in idea generation task {job_id}: {str(e)}")

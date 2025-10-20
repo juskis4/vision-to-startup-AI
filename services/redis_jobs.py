@@ -134,17 +134,9 @@ class RedisJobManager:
         dedupe_key = f"prompt_job_dedupe:{idea_id}:{service_type}:{idempotency_key}"
         return self.redis_client.get(dedupe_key)
 
-    def complete_job(self, job_id: str, result: Optional[Dict[str, Any]] = None) -> bool:
-        """Mark job as completed with optional result data"""
-        updates = {
-            "status": "succeeded",
-            "progress": "1.0",
-            "error": ""
-        }
-        if result:
-            # Store as JSON string for proper serialization
-            updates["result"] = json.dumps(result)
-        return self.update_job(job_id, **updates)
+    def complete_job(self, job_id: str) -> bool:
+        """Mark job as completed"""
+        return self.update_job(job_id, status="succeeded", progress=1.0, error="")
 
     def fail_job(self, job_id: str, error_message: str) -> bool:
         """Mark job as failed with error message"""

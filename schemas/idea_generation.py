@@ -7,8 +7,6 @@ class IdeaGenerateResponse(BaseModel):
     job_id: str = Field(description="Job ID for tracking generation progress")
     status: str = Field(description="Current job status")
     poll_url: str = Field(description="URL to poll for job status updates")
-    result_url: Optional[str] = Field(
-        description="URL to get the final idea when completed")
 
 
 class IdeaJobStatusResponse(BaseModel):
@@ -19,8 +17,5 @@ class IdeaJobStatusResponse(BaseModel):
     progress: float = Field(description="Progress percentage (0.0 to 1.0)")
     error: Optional[str] = Field(description="Error message if job failed")
     user_id: str = Field(description="User ID who initiated the job")
-    idea_id: Optional[str] = Field(
-        description="Generated idea ID when completed")
-    result_url: Optional[str] = Field(description="URL to get the final idea")
     retry_after: Optional[int] = Field(
         description="Seconds to wait before next poll")

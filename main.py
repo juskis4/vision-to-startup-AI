@@ -119,22 +119,10 @@ async def generate_idea(
         if existing_job_id:
             job_data = redis_job_manager.get_job(existing_job_id)
             if job_data:
-                result_url = None
-                result_str = job_data.get("result")
-                if result_str:
-                    try:
-                        result_dict = json.loads(result_str)
-                        idea_id = result_dict.get("idea_id")
-                        if idea_id:
-                            result_url = f"/ideas/{idea_id}"
-                    except:
-                        pass
-
                 return IdeaGenerateResponse(
                     job_id=existing_job_id,
                     status=job_data["status"],
-                    poll_url=f"/idea-jobs/{existing_job_id}",
-                    result_url=result_url
+                    poll_url=f"/idea-jobs/{existing_job_id}"
                 )
 
         # Create new job
@@ -154,8 +142,7 @@ async def generate_idea(
         return IdeaGenerateResponse(
             job_id=job_id,
             status="queued",
-            poll_url=f"/idea-jobs/{job_id}",
-            result_url=None
+            poll_url=f"/idea-jobs/{job_id}"
         )
 
     except HTTPException:
@@ -355,29 +342,12 @@ async def get_idea_job_status(job_id: str):
                 detail="Job has expired or does not exist"
             )
 
-        result_url = None
-        idea_id = None
-
-        # Parse result if it exists
-        result_str = job_data.get("result")
-        if result_str:
-            try:
-                import json
-                result_dict = json.loads(result_str)
-                idea_id = result_dict.get("idea_id")
-                if idea_id:
-                    result_url = f"/ideas/{idea_id}"
-            except:
-                pass  # If parsing fails, just continue without result
-
         return IdeaJobStatusResponse(
             job_id=job_id,
             status=job_data["status"],
             progress=job_data["progress"],
             error=job_data.get("error"),
             user_id=job_data.get("user_id", "web_user"),
-            idea_id=idea_id,
-            result_url=result_url,
             retry_after=5 if job_data["status"] in [
                 "queued", "running"] else None
         )
