@@ -29,7 +29,7 @@ class IdeaSchema(BaseModel):
 
 class IcpSchema(BaseModel):
     target_demographics: List[str] = Field(
-        description="List of demographic tags describing the target audience (e.g., 'Busy professionals aged 25-45', 'Health-conscious individuals')",
+        description="List of demographic tags describing the target audience (e.g., 'Busy professionals aged 25-45', 'Health-conscious individuals. Up to 4 words per tag.')",
         min_length=3,
         max_length=6
     )
