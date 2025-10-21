@@ -1,7 +1,8 @@
 from services.llm.base import LLM
 from services.database.base import Database
 from typing import Optional
-from schemas.idea import IdeaSchema, IcpSchema, RedditSchema, ResponseSchema
+import time
+from schemas.idea import IdeaSchema, IcpSchema, RedditSchema, ResponseSchema, RedditFeedback
 
 
 class AgentService:
@@ -14,26 +15,104 @@ class AgentService:
                                   user_id: str,
                                   options: Optional[dict] = None) -> ResponseSchema:
 
-        idea = await self.extract_idea(user_input=user_input, options=options)
-        if idea.confidence < 0.7:
-            print(f"Low confidence score: {idea.confidence}")
-            return None
+        # DUMMY RESPONSE - Simulate 1 minute processing time for frontend testing
+        print(f"[DUMMY MODE] Simulating idea generation for: {user_input}")
+        time.sleep(60)  # Simulate 1 minute processing time
 
-        icp = await self.extract_icp(context=idea.model_dump_json(), options=options)
-        if icp.confidence < 0.7:
-            print(f"Low confidence score: {icp.confidence}")
-            return None
-
-        reddit = await self.extract_reddit(
-            context=f"{idea.model_dump_json()}\n\n{icp.model_dump_json()}",
-            options=options
+        # Create dummy idea schema
+        idea = IdeaSchema(
+            title="AI-Powered Smart Productivity Assistant",
+            description="An intelligent personal assistant that learns your work patterns and automatically optimizes your daily schedule, prioritizes tasks, and eliminates time-wasting activities.",
+            problem_statement="Busy professionals struggle to manage their time effectively, leading to decreased productivity and increased stress levels.",
+            key_features=[
+                "Intelligent task prioritization based on deadlines and importance",
+                "Automatic calendar optimization and meeting scheduling",
+                "Real-time productivity tracking and insights",
+                "Smart notification management to reduce distractions",
+                "Integration with popular productivity and communication tools"
+            ],
+            confidence=0.85
         )
-        if reddit.confidence < 0.5:
-            print(f"Low confidence score: {reddit.confidence}")
-            return None
+
+        # Create dummy ICP schema
+        icp = IcpSchema(
+            target_demographics=[
+                "Busy professionals aged 25-45",
+                "Remote workers and freelancers",
+                "Small business owners",
+                "Project managers and team leads"
+            ],
+            ideal_customer_profile="Mid-level to senior professionals earning $50k-$150k annually, primarily in tech, consulting, and creative industries. They value efficiency and are willing to pay for tools that save time and reduce stress.",
+            pain_points=[
+                "Constant context switching between tasks and tools",
+                "Difficulty prioritizing work when everything seems urgent",
+                "Spending too much time in unproductive meetings",
+                "Forgetting important tasks and deadlines",
+                "Feeling overwhelmed by information overload"
+            ],
+            user_motivations=[
+                "Achieve better work-life balance",
+                "Increase productivity and career advancement",
+                "Reduce stress and mental load",
+                "Gain more time for meaningful work",
+                "Stay organized and in control"
+            ],
+            confidence=0.82
+        )
+
+        # Create dummy Reddit analysis schema
+        reddit = RedditSchema(
+            supportive_feedback=[
+                RedditFeedback(
+                    comment="I've been looking for something like this for years! My calendar is a disaster and I can never find time for the important stuff.",
+                    username="u/busyprofessional2024",
+                    subreddit="r/productivity",
+                    link="https://www.reddit.com/r/productivity/comments/dummy1"
+                ),
+                RedditFeedback(
+                    comment="As a project manager, this would be a game changer. I spend half my day just figuring out what to work on next.",
+                    username="u/projectmanager_jane",
+                    subreddit="r/ProjectManagement",
+                    link="https://www.reddit.com/r/ProjectManagement/comments/dummy2"
+                ),
+                RedditFeedback(
+                    comment="The meeting optimization feature alone would save me hours each week. Take my money!",
+                    username="u/meetinghater",
+                    subreddit="r/antiwork",
+                    link="https://www.reddit.com/r/antiwork/comments/dummy3"
+                )
+            ],
+            challenging_feedback=[
+                RedditFeedback(
+                    comment="Another productivity app? There are already dozens of these. What makes this different from Notion or Todoist?",
+                    username="u/skeptical_user",
+                    subreddit="r/productivity",
+                    link="https://www.reddit.com/r/productivity/comments/dummy4"
+                ),
+                RedditFeedback(
+                    comment="I tried similar apps before and they just became another thing to manage. How do you avoid feature bloat?",
+                    username="u/minimalist_mike",
+                    subreddit="r/minimalism",
+                    link="https://www.reddit.com/r/minimalism/comments/dummy5"
+                )
+            ],
+            relevant_subreddits=[
+                "r/productivity",
+                "r/GetMotivated",
+                "r/projectmanagement",
+                "r/entrepreneur",
+                "r/remotework",
+                "r/freelance",
+                "r/consulting",
+                "r/timemanagement"
+            ],
+            confidence=0.78
+        )
 
         response_schema = ResponseSchema(
-            idea=idea, icp=icp, reddit_analysis=reddit
+            idea=idea,
+            icp=icp,
+            reddit_analysis=reddit
         )
 
         try:
@@ -42,6 +121,8 @@ class AgentService:
                 idea=user_input,
                 response=response_schema.model_dump()
             )
+            print(
+                f"[DUMMY MODE] Saved dummy response to database for user {user_id}")
         except Exception as e:
             print(f"Failed to save to database: {str(e)}")
 
