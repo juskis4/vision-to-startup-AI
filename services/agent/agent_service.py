@@ -15,9 +15,9 @@ class AgentService:
                                   user_id: str,
                                   options: Optional[dict] = None) -> ResponseSchema:
 
-        # DUMMY RESPONSE - Simulate 1 minute processing time for frontend testing
+        # DUMMY RESPONSE - Simulate 25 seconds processing time for frontend testing
         print(f"[DUMMY MODE] Simulating idea generation for: {user_input}")
-        time.sleep(60)  # Simulate 1 minute processing time
+        time.sleep(25)  # Simulate 25 seconds processing time
 
         # Create dummy idea schema
         idea = IdeaSchema(
