@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 
 
 class IdeaSchema(BaseModel):
@@ -99,3 +99,5 @@ class ResponseSchema(BaseModel):
     idea: IdeaSchema = Field()
     icp: IcpSchema = Field()
     reddit_analysis: RedditSchema = Field()
+    idea_id: Optional[str] = Field(
+        default=None, description="Generated idea ID from database")

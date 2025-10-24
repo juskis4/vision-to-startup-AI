@@ -59,6 +59,7 @@ class RedisJobManager:
             "service_type": service_type,
             "idempotency_key": idempotency_key,
             "prompt_id": "",
+            "idea_result_id": "",
             "created_at": datetime.utcnow().isoformat()
         }
 
@@ -98,7 +99,8 @@ class RedisJobManager:
         status: Optional[str] = None,
         progress: Optional[float] = None,
         error: Optional[str] = None,
-        prompt_id: Optional[str] = None
+        prompt_id: Optional[str] = None,
+        idea_result_id: Optional[str] = None
     ) -> bool:
         """Update job fields"""
         job_key = f"prompt_job:{job_id}"
@@ -116,6 +118,8 @@ class RedisJobManager:
             updates["error"] = error
         if prompt_id is not None:
             updates["prompt_id"] = prompt_id
+        if idea_result_id is not None:
+            updates["idea_result_id"] = idea_result_id
 
         if updates:
             self.redis_client.hset(job_key, mapping=updates)

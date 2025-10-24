@@ -19,3 +19,5 @@ class IdeaJobStatusResponse(BaseModel):
     user_id: str = Field(description="User ID who initiated the job")
     retry_after: Optional[int] = Field(
         description="Seconds to wait before next poll")
+    idea_url: Optional[str] = Field(
+        description="URL to retrieve the generated idea (available after success)")

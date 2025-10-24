@@ -342,6 +342,10 @@ async def get_idea_job_status(job_id: str):
                 detail="Job has expired or does not exist"
             )
 
+        idea_url = None
+        if job_data.get("idea_result_id"):
+            idea_url = f"/ideas/{job_data['idea_result_id']}"
+
         return IdeaJobStatusResponse(
             job_id=job_id,
             status=job_data["status"],
@@ -349,7 +353,8 @@ async def get_idea_job_status(job_id: str):
             error=job_data.get("error"),
             user_id=job_data.get("user_id", "web_user"),
             retry_after=5 if job_data["status"] in [
-                "queued", "running"] else None
+                "queued", "running"] else None,
+            idea_url=idea_url
         )
 
     except HTTPException:

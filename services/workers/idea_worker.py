@@ -56,8 +56,20 @@ def generate_idea_task(self, job_id: str):
         redis_job_manager.update_job(job_id, status="running", progress=0.9)
 
         if response_schema:
-            redis_job_manager.complete_job(job_id)
-            print(f"Idea generation completed successfully for job {job_id}")
+            # Extract the idea ID from the response (already saved by agent service)
+            idea_result_id = response_schema.idea_id if hasattr(
+                response_schema, 'idea_id') else None
+
+            # Complete the job with the idea ID
+            redis_job_manager.update_job(
+                job_id,
+                status="succeeded",
+                progress=1.0,
+                error="",
+                idea_result_id=idea_result_id
+            )
+            print(
+                f"Idea generation completed successfully for job {job_id}, idea ID: {idea_result_id}")
         else:
             redis_job_manager.fail_job(
                 job_id, "Low confidence scores - idea generation failed")

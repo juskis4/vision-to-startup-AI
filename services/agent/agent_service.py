@@ -116,13 +116,20 @@ class AgentService:
         )
 
         try:
-            self.db.insert_plan(
+            result = self.db.insert_plan(
                 user_id=user_id,
                 idea=user_input,
                 response=response_schema.model_dump()
             )
+            idea_id = None
+            if result and len(result) > 0:
+                idea_id = result[0]["id"]
             print(
-                f"[DUMMY MODE] Saved dummy response to database for user {user_id}")
+                f"[DUMMY MODE] Saved dummy response to database for user {user_id}, idea ID: {idea_id}")
+
+            # Attach the idea_id to the response for the worker
+            response_schema.idea_id = idea_id
+
         except Exception as e:
             print(f"Failed to save to database: {str(e)}")
 
