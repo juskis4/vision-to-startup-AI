@@ -179,6 +179,36 @@ async def get_all_ideas():
         }
 
 
+@app.get("/ideas/{idea_id}/summary")
+async def get_idea_summary(idea_id: str):
+    """
+    Retrieve a single idea summary by its ID with the same data structure as get_all_ideas.
+    Args:
+        idea_id: The unique identifier of the idea to retrieve
+    Returns:
+        Idea summary with basic information (title, description, counts, etc.)
+    """
+    try:
+        idea_summary = db.get_idea_summary_by_id(idea_id)
+
+        if idea_summary is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Idea with ID '{idea_id}' not found"
+            )
+
+        return idea_summary
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error retrieving idea summary {idea_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve idea summary"
+        )
+
+
 @app.get("/ideas/{idea_id}")
 async def get_idea_by_id(idea_id: str):
     """
@@ -341,7 +371,7 @@ async def get_idea_job_status(job_id: str):
 
         idea_url = None
         if job_data.get("idea_result_id"):
-            idea_url = f"/ideas/{job_data['idea_result_id']}"
+            idea_url = f"/ideas/{job_data['idea_result_id']}/summary"
 
         return IdeaJobStatusResponse(
             job_id=job_id,

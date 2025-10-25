@@ -47,6 +47,41 @@ class SupabaseDB(Database):
 
         return ideas
 
+    def get_idea_summary_by_id(self, idea_id: str) -> Optional[Dict[str, Any]]:
+        """Get idea summary with same structure as get_all_ideas but for a single idea"""
+        try:
+            result = self.client.table("business_plans").select(
+                "id, user_id, response, created_at"
+            ).eq("id", idea_id).execute()
+
+            if not result.data or len(result.data) == 0:
+                return None
+
+            plan = result.data[0]
+            response = plan.get("response", {})
+            idea_data = response.get("idea", {}) if isinstance(
+                response, dict) else {}
+            icp_data = response.get("icp", {}) if isinstance(
+                response, dict) else {}
+            reddit_data = response.get("reddit_analysis", {}) if isinstance(
+                response, dict) else {}
+
+            return {
+                "id": plan["id"],
+                "user_id": plan["user_id"],
+                "created_at": plan["created_at"],
+                "title": idea_data.get("title", ""),
+                "description": idea_data.get("description", ""),
+                "problem_statement": idea_data.get("problem_statement", ""),
+                "target_demographics": icp_data.get("target_demographics", ""),
+                "key_features_count": len(idea_data.get("key_features", [])),
+                "reddit_insights_count": len(reddit_data.get("challenging_feedback", [])) + len(reddit_data.get("supportive_feedback", [])),
+            }
+
+        except Exception as e:
+            print(f"Error retrieving idea summary for ID {idea_id}: {str(e)}")
+            return None
+
     def get_idea_by_id(self, idea_id: str) -> Optional[Dict[str, Any]]:
         try:
             result = self.client.table("business_plans").select(

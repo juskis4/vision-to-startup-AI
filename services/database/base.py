@@ -17,6 +17,10 @@ class Database(ABC):
         raise NotImplementedError("get_idea_by_id method must be implemented")
 
     @abstractmethod
+    def get_idea_summary_by_id(self, idea_id: str) -> Optional[Dict[str, Any]]:
+        raise NotImplementedError("get_idea_summary_by_id method must be implemented")
+
+    @abstractmethod
     def update_idea_field(self, idea_id: str, field_name: str, field_value: str) -> Dict[str, Any]:
         raise NotImplementedError(
             "update_idea_field method must be implemented")
