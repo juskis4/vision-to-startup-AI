@@ -215,10 +215,7 @@ async def get_idea_by_id(idea_id: str):
                 f"Error retrieving latest prompt for idea {idea_id}: {str(e)}")
             idea["latest_prompt"] = None
 
-        return {
-            "success": True,
-            "data": idea
-        }
+        return idea
 
     except HTTPException:
         raise
